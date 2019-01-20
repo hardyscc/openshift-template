@@ -1,9 +1,9 @@
 kind: Template
 apiVersion: v1
 metadata:
-  name: "gitlab-runner"
+  name: 'gitlab-runner'
   annotations:
-    iconClass: "fa fa-git"
+    iconClass: 'fa fa-git'
     description: |
       GitLab Runner Service.
       It uses GitLab Runner image from official repository at docker hub.
@@ -12,41 +12,41 @@ metadata:
       containers
         oc login -u system:admin
         oc adm policy add-scc-to-user privileged -z gitlab-runner-user -n CURRENT_PROJECT_NAME
-    tags: "gitlab,CI"
+    tags: 'gitlab,CI'
 labels:
-  createdBy: "gitlab-runner-template"
+  createdBy: 'gitlab-runner-template'
 parameters:
-  - description: "The name for the application. The service will be named like the application."
-    displayName: "Application name."
+  - description: 'The name for the application. The service will be named like the application.'
+    displayName: 'Application name.'
     name: APPLICATION_NAME
-    value: "gitlab-runner"
+    value: 'gitlab-runner'
     required: true
 
-  - description: "URL that GitLab can be reached at"
-    displayName: "GitLab URL"
+  - description: 'URL that GitLab can be reached at'
+    displayName: 'GitLab URL'
     name: GITLAB_URL
     required: true
 
-  - description: "Runner Registration Token from the GitLab app"
-    displayName: "Registration Token."
+  - description: 'Runner Registration Token from the GitLab app'
+    displayName: 'Registration Token.'
     name: REGISTRATION_TOKEN
     required: true
 
-  - description: "URL that GitLab registry can be reached at"
-    displayName: "GitLab Registry URL"
+  - description: 'URL that GitLab registry can be reached at'
+    displayName: 'GitLab Registry URL'
     name: GITLAB_REGISTRY_URL
     required: true
 
   - description: Custom username or access key of 5 to 20 characters in length.
     displayName: Minio Cloud Storage Access Key
     name: MINIO_ACCESS_KEY
-    from: "[a-zA-Z0-9]{20}"
+    from: '[a-zA-Z0-9]{20}'
     generate: expression
 
   - description: Custom password or secret key of 8 to 40 characters in length.
     displayName: Minio Cloud Storage Secret Key
     name: MINIO_SECRET_KEY
-    from: "[a-zA-Z0-9]{40}"
+    from: '[a-zA-Z0-9]{40}'
     generate: expression
 
 objects:
@@ -82,7 +82,6 @@ objects:
           --registration-token $REGISTRATION_TOKEN \
           --name "k8s_runner" \
           --executor kubernetes
-
         # Add extra config
         # cat /scripts/extraconfig.yaml >> /etc/gitlab-runner/config.toml
         # Add minio config
@@ -100,20 +99,21 @@ objects:
           --working-directory=/home/gitlab-runner
 
       config.toml: |
-        concurrent = 1
+        concurrent = 10
         check_interval = 10
-      extraconfig.yaml: |
-        [[runners.kubernetes.volumes.host_path]]
-          name = "docker-socket"
-          mount_path = "/var/run/docker.sock"
-          read_only = false
-          host_path = "/var/run/docker.sock"
-        # [[runners.kubernetes.volumes.secret]]
-        #  name = "secrets"
-        #  mount_path = "/tmp"
-        #  read_only = true
-        #  [runners.kubernetes.volumes.secret.items]
-        #    "hub" = "hubsecret"
+
+      # extraconfig.yaml: |
+      #   [[runners.kubernetes.volumes.host_path]]
+      #     name = "docker-socket"
+      #     mount_path = "/var/run/docker.sock"
+      #     read_only = false
+      #     host_path = "/var/run/docker.sock"
+      #   [[runners.kubernetes.volumes.secret]]
+      #    name = "secrets"
+      #    mount_path = "/tmp"
+      #    read_only = true
+      #    [runners.kubernetes.volumes.secret.items]
+      #      "hub" = "hubsecret"
 
   - kind: ServiceAccount
     apiVersion: v1
@@ -171,7 +171,7 @@ objects:
           containers:
             - name: gitlab-runner
               image: gitlab-runner
-              command: ["/bin/bash", "/scripts/entrypoint"]
+              command: ['/bin/bash', '/scripts/entrypoint']
               ports:
                 - containerPort: 22
                   protocol: TCP
@@ -191,26 +191,26 @@ objects:
                 - name: MINIO_URL
                   value: ${APPLICATION_NAME}-cache
                 - name: KUBERNETES_PRIVILEGED
-                  value: "true"
+                  value: 'true'
                 - name: KUBERNETES_IMAGE
-                  value: "ubuntu:16.04"
+                  value: 'ubuntu:16.04'
                 - name: KUBERNETES_NAMESPACE
                   valueFrom:
                     fieldRef:
-                      fieldPath: "metadata.namespace"
+                      fieldPath: 'metadata.namespace'
               resources:
                 limits:
-                  cpu: "600m"
-                  memory: "600Mi"
+                  cpu: '600m'
+                  memory: '600Mi'
                 requests:
-                  cpu: "100m"
-                  memory: "300Mi"
+                  cpu: '100m'
+                  memory: '300Mi'
               volumeMounts:
                 - name: scripts
                   mountPath: /scripts
               livenessProbe:
                 exec:
-                  command: ["/usr/bin/pgrep", "gitlab-runner"]
+                  command: ['/usr/bin/pgrep', 'gitlab-runner']
                 initialDelaySeconds: 60
                 timeoutSeconds: 1
                 periodSeconds: 10
@@ -218,13 +218,13 @@ objects:
                 failureThreshold: 3
               readinessProbe:
                 exec:
-                  command: ["/usr/bin/pgrep", "gitlab-runner"]
+                  command: ['/usr/bin/pgrep', 'gitlab-runner']
                 initialDelaySeconds: 10
                 timeoutSeconds: 1
                 periodSeconds: 10
                 successThreshold: 1
                 failureThreshold: 3
-              terminationMessagePath: "/dev/termination-log"
+              terminationMessagePath: '/dev/termination-log'
               imagePullPolicy: IfNotPresent
               securityContext:
                 privileged: true
@@ -321,7 +321,7 @@ objects:
                   value: ${MINIO_SECRET_KEY}
               command:
                 - /bin/sh
-                - "-c"
+                - '-c'
                 - >-
                   /bin/mkdir -p /storage/gitlab-runner-cache; 
                   /usr/bin/minio server /storage
@@ -337,7 +337,7 @@ objects:
                   mountPath: /storage
               readinessProbe:
                 exec:
-                  command: ["/usr/bin/pgrep", "minio"]
+                  command: ['/usr/bin/pgrep', 'minio']
                 initialDelaySeconds: 5
                 timeoutSeconds: 1
               livenessProbe:
