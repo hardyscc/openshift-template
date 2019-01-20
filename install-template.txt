@@ -54,11 +54,6 @@ oc create identity htpasswd_auth:${USER}
 oc create useridentitymapping htpasswd_auth:${USER} ${USER}
 
 -----------------------------------------------------------------------------------------------------------------
-# new project
-oc login
-oc new-project ${USER}
-
------------------------------------------------------------------------------------------------------------------
 ## enable anyuid access for whole cluster
 oc adm policy add-scc-to-group anyuid system:authenticated
 
@@ -66,7 +61,7 @@ oc adm policy add-scc-to-group anyuid system:authenticated
 ## Install gitlab
 
 oc new-project gitlab
-oc create -f openshift-template.yaml
+oc create -f gitlab-template.yaml
 oc adm policy add-scc-to-user privileged -z gitlab-ce-user
 oc create secret generic gitlab-cert -n gitlab \
   --from-file=gitlab.crt=/etc/letsencrypt/live/gitlab.${DOMAIN}/fullchain.pem \
@@ -79,14 +74,16 @@ oc new-app gitlab-ce -p APPLICATION_DOMAIN=${DOMAIN}
 ## Install Gitlab runner
 
 oc new-project gitlab-runner
-oc create -f gitlab-runner.yaml
+oc create -f gitlab-runner-template.yaml
 oc adm policy add-scc-to-user privileged -z gitlab-runner-user 
 oc new-app gitlab-runner -p GITLAB_URL=https://gitlab.${DOMAIN}/ \
   -p REGISTRATION_TOKEN=xxxxxxxxxxxxxxxxxx \
   -p GITLAB_REGISTRY_URL=registry.${DOMAIN}
 
 -----------------------------------------------------------------------------------------------------------------
-## Install Tiller
+## Install Tiller (oc login as )
+
+oc login -u ${USER} https://console.${DOMAIN}:8443/
 
 export TILLER_NAMESPACE=${USER}
 oc new-project ${USER}
@@ -95,6 +92,7 @@ oc process -f https://github.com/openshift/origin/raw/master/examples/helm/tille
 oc policy add-role-to-user admin -z tiller
 oc rollout status deployment tiller
 
-oc describe secret (oc get secrets | grep -E '^tiller' | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d " "
+# Get the token for Gitlab kubernetes
+oc describe secret (oc get secrets | grep -E '^tiller' | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d " " | head -n 1
 
 -----------------------------------------------------------------------------------------------------------------
