@@ -1,5 +1,16 @@
-# copy ssh public key
-ssh-copy-id -i ~/.ssh/id_rsa.pub ${DOMAIN}
+-----------------------------------------------------------------------------------------------------------------
+# install centos 7 minimum
+1. set timezone & date time 
+2. enable network & set hostname
+3. create user account & make it as administrator
+
+-----------------------------------------------------------------------------------------------------------------
+# copy ssh public key over to server
+ssh-copy-id -i ~/.ssh/id_rsa.pub ${USER}@${DOMAIN}
+
+# ssh to server and become root
+ssh ${USER}@${DOMAIN}
+sudo -i
 
 # add sudoers
 echo '${USER} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${USER}
@@ -10,56 +21,56 @@ LANGUAGE="en_US.UTF-8"
 LC_ALL="en_US.UTF-8"
 EOF
 
-# set timezone if needed
-timedatectl set-timezone Asia/Hong_Kong
+# set proxy under /etc/environment (only if required)
+cat << EOF >> /etc/environment
+http_proxy="${HTTP_PROXY}"
+https_proxy="${HTTP_PROXY}"
+no_proxy="localhost,127.0.0.1,localaddress,.localdomain.com,.cluster.local,.svc,172.30.0.1,.${DOMAIN}"
+EOF
 
-# update time if needed
-date -s "$(wget --no-cache -S -O /dev/null google.com 2>&1 | sed -n -e '/  *Date: */ {' -e s///p -e q -e '}')"
-
-# Update System
+# update system
 yum -y update
 
-# Install Certbot
+-----------------------------------------------------------------------------------------------------------------
+# install certbot
 yum -y install epel-release 
 yum -y install certbot
 
-# Generate certificates
+# generate certificates
 certbot certonly --manual --preferred-challenges dns -d console.${DOMAIN}
 certbot certonly --manual --preferred-challenges dns -d registry.${DOMAIN}
 certbot certonly --manual --preferred-challenges dns -d gitlab.${DOMAIN}
 certbot certonly --manual --preferred-challenges dns -d *.apps.${DOMAIN}
 
-# Install Git
+-----------------------------------------------------------------------------------------------------------------
+# install git
 yum -y install git
 
-git clone https://github.com/hardyscc/installcentos.git
+# set proxy (only if required)
+git config --global --add http.proxy "${HTTP_PROXY}"
 
-# Auto install
+# install openshift
+git clone https://github.com/hardyscc/installcentos.git
 cd installcentos
 ./install-openshift.sh
 
 -----------------------------------------------------------------------------------------------------------------
-# please reboot the whole system if NetworkManager not apply (check /etc/resolv.conf)
-reboot
-
------------------------------------------------------------------------------------------------------------------
-# uninstall
+# uninstall if any failure occur then retry installation
 ansible-playbook -i inventory.ini openshift-ansible/playbooks/adhoc/uninstall.yml
 
 -----------------------------------------------------------------------------------------------------------------
-# create user
+# create openshift user
 htpasswd /etc/origin/master/htpasswd ${USER}
 oc create user ${USER}
 oc create identity htpasswd_auth:${USER}
 oc create useridentitymapping htpasswd_auth:${USER} ${USER}
 
 -----------------------------------------------------------------------------------------------------------------
-## enable anyuid access for whole cluster
+# enable anyuid access for whole cluster (required for heroku image)
 oc adm policy add-scc-to-group anyuid system:authenticated
 
 -----------------------------------------------------------------------------------------------------------------
-## Install gitlab
-
+# install gitlab
 oc new-project gitlab
 oc create -f gitlab-template.yaml
 oc adm policy add-scc-to-user privileged -z gitlab-ce-user
@@ -71,7 +82,8 @@ oc create secret generic gitlab-cert -n gitlab \
 oc new-app gitlab-ce -p APPLICATION_DOMAIN=${DOMAIN}
 
 -----------------------------------------------------------------------------------------------------------------
-## Install Gitlab runner
+# install gitlab runner
+## lookup the gitlab runner registration token under gitlab administration page
 
 oc new-project gitlab-runner
 oc create -f gitlab-runner-template.yaml
@@ -81,10 +93,10 @@ oc new-app gitlab-runner -p GITLAB_URL=https://gitlab.${DOMAIN}/ \
   -p GITLAB_REGISTRY_URL=registry.${DOMAIN}
 
 -----------------------------------------------------------------------------------------------------------------
-## Install Tiller (oc login as )
-
+# login as normal user
 oc login -u ${USER} https://console.${DOMAIN}:8443/
 
+# install tiller 
 export TILLER_NAMESPACE=${USER}
 oc new-project ${USER}
 oc process -f https://github.com/openshift/origin/raw/master/examples/helm/tiller-template.yaml \
