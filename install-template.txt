@@ -1,0 +1,100 @@
+# copy ssh public key
+ssh-copy-id -i ~/.ssh/id_rsa.pub ${DOMAIN}
+
+# add sudoers
+echo '${USER} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${USER}
+
+# set locale under /etc/environment
+cat << EOF >> /etc/environment
+LANGUAGE="en_US.UTF-8"
+LC_ALL="en_US.UTF-8"
+EOF
+
+# set timezone if needed
+timedatectl set-timezone Asia/Hong_Kong
+
+# update time if needed
+date -s "$(wget --no-cache -S -O /dev/null google.com 2>&1 | sed -n -e '/  *Date: */ {' -e s///p -e q -e '}')"
+
+# Update System
+yum -y update
+
+# Install Certbot
+yum -y install epel-release 
+yum -y install certbot
+
+# Generate certificates
+certbot certonly --manual --preferred-challenges dns -d console.${DOMAIN}
+certbot certonly --manual --preferred-challenges dns -d registry.${DOMAIN}
+certbot certonly --manual --preferred-challenges dns -d gitlab.${DOMAIN}
+certbot certonly --manual --preferred-challenges dns -d *.apps.${DOMAIN}
+
+# Install Git
+yum -y install git
+
+git clone https://github.com/hardyscc/installcentos.git
+
+# Auto install
+cd installcentos
+./install-openshift.sh
+
+-----------------------------------------------------------------------------------------------------------------
+# please reboot the whole system if NetworkManager not apply (check /etc/resolv.conf)
+reboot
+
+-----------------------------------------------------------------------------------------------------------------
+# uninstall
+ansible-playbook -i inventory.ini openshift-ansible/playbooks/adhoc/uninstall.yml
+
+-----------------------------------------------------------------------------------------------------------------
+# create user
+htpasswd /etc/origin/master/htpasswd ${USER}
+oc create user ${USER}
+oc create identity htpasswd_auth:${USER}
+oc create useridentitymapping htpasswd_auth:${USER} ${USER}
+
+-----------------------------------------------------------------------------------------------------------------
+# new project
+oc login
+oc new-project ${USER}
+
+-----------------------------------------------------------------------------------------------------------------
+## enable anyuid access for whole cluster
+oc adm policy add-scc-to-group anyuid system:authenticated
+
+-----------------------------------------------------------------------------------------------------------------
+## Install gitlab
+
+oc new-project gitlab
+oc create -f openshift-template.yaml
+oc adm policy add-scc-to-user privileged -z gitlab-ce-user
+oc create secret generic gitlab-cert -n gitlab \
+  --from-file=gitlab.crt=/etc/letsencrypt/live/gitlab.${DOMAIN}/fullchain.pem \
+  --from-file=gitlab.key=/etc/letsencrypt/live/gitlab.${DOMAIN}/privkey.pem \
+  --from-file=registry.crt=/etc/letsencrypt/live/registry.${DOMAIN}/fullchain.pem \
+  --from-file=registry.key=/etc/letsencrypt/live/registry.${DOMAIN}/privkey.pem
+oc new-app gitlab-ce -p APPLICATION_DOMAIN=${DOMAIN}
+
+-----------------------------------------------------------------------------------------------------------------
+## Install Gitlab runner
+
+oc new-project gitlab-runner
+oc create -f gitlab-runner.yaml
+oc adm policy add-scc-to-user privileged -z gitlab-runner-user 
+oc new-app gitlab-runner -p GITLAB_URL=https://gitlab.${DOMAIN}/ \
+  -p REGISTRATION_TOKEN=xxxxxxxxxxxxxxxxxx \
+  -p GITLAB_REGISTRY_URL=registry.${DOMAIN}
+
+-----------------------------------------------------------------------------------------------------------------
+## Install Tiller
+
+export TILLER_NAMESPACE=${USER}
+oc new-project ${USER}
+oc process -f https://github.com/openshift/origin/raw/master/examples/helm/tiller-template.yaml \
+  -p TILLER_NAMESPACE="${USER}" -p HELM_VERSION=v2.11.0 | oc apply -f -
+oc policy add-role-to-user admin -z tiller
+oc rollout status deployment tiller
+
+oc describe secret (oc get secrets | grep -E '^tiller' | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d " "
+
+-----------------------------------------------------------------------------------------------------------------

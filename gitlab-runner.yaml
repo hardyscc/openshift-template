@@ -1,0 +1,359 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: "gitlab-runner"
+  annotations:
+    iconClass: "fa fa-git"
+    description: |
+      GitLab Runner Service.
+      It uses GitLab Runner image from official repository at docker hub.
+      https://hub.docker.com/r/gitlab/gitlab-runner/
+      Before you start, please setup Security Context Constraints (SCC) for service accounts used for running
+      containers
+        oc login -u system:admin
+        oc adm policy add-scc-to-user privileged -z gitlab-runner-user -n CURRENT_PROJECT_NAME
+    tags: "gitlab,CI"
+labels:
+  createdBy: "gitlab-runner-template"
+parameters:
+  - description: "The name for the application. The service will be named like the application."
+    displayName: "Application name."
+    name: APPLICATION_NAME
+    value: "gitlab-runner"
+    required: true
+
+  - description: "URL that GitLab can be reached at"
+    displayName: "GitLab URL"
+    name: GITLAB_URL
+    required: true
+
+  - description: "Runner Registration Token from the GitLab app"
+    displayName: "Registration Token."
+    name: REGISTRATION_TOKEN
+    required: true
+
+  - description: "URL that GitLab registry can be reached at"
+    displayName: "GitLab Registry URL"
+    name: GITLAB_REGISTRY_URL
+    required: true
+
+  - description: Custom username or access key of 5 to 20 characters in length.
+    displayName: Minio Cloud Storage Access Key
+    name: MINIO_ACCESS_KEY
+    from: "[a-zA-Z0-9]{20}"
+    generate: expression
+
+  - description: Custom password or secret key of 8 to 40 characters in length.
+    displayName: Minio Cloud Storage Secret Key
+    name: MINIO_SECRET_KEY
+    from: "[a-zA-Z0-9]{40}"
+    generate: expression
+
+objects:
+  - kind: ImageStream
+    apiVersion: v1
+    metadata:
+      name: gitlab-runner
+      labels:
+        app: ${APPLICATION_NAME}
+    spec:
+      tags:
+        - name: latest
+          from:
+            kind: DockerImage
+            name: gitlab/gitlab-runner:latest
+
+  - kind: ConfigMap
+    apiVersion: v1
+    metadata:
+      name: ${APPLICATION_NAME}-scripts
+      labels:
+        app: ${APPLICATION_NAME}
+    data:
+      entrypoint: |
+        #!/bin/bash
+        set -xe
+        cp /scripts/config.toml /etc/gitlab-runner/
+        # Register the runner
+        /entrypoint register --non-interactive \
+          --url $GITLAB_URL \
+          --run-untagged \
+          --kubernetes-privileged \
+          --registration-token $REGISTRATION_TOKEN \
+          --name "k8s_runner" \
+          --executor kubernetes
+
+        # Add extra config
+        # cat /scripts/extraconfig.yaml >> /etc/gitlab-runner/config.toml
+        # Add minio config
+        sed -i '/\[runners.cache\]/a\
+            Type = "s3"\
+            Shared = true' /etc/gitlab-runner/config.toml
+        sed -i '/\[runners.cache.s3\]/a\
+              ServerAddress = "'$MINIO_URL'"\
+              AccessKey = "'$MINIO_ACCESS_KEY'"\
+              SecretKey = "'$MINIO_SECRET_KEY'"\
+              BucketName = "gitlab-runner-cache"\
+              Insecure = true' /etc/gitlab-runner/config.toml
+        # Start the runner
+        /entrypoint run --user=gitlab-runner \
+          --working-directory=/home/gitlab-runner
+
+      config.toml: |
+        concurrent = 1
+        check_interval = 10
+      extraconfig.yaml: |
+        [[runners.kubernetes.volumes.host_path]]
+          name = "docker-socket"
+          mount_path = "/var/run/docker.sock"
+          read_only = false
+          host_path = "/var/run/docker.sock"
+        # [[runners.kubernetes.volumes.secret]]
+        #  name = "secrets"
+        #  mount_path = "/tmp"
+        #  read_only = true
+        #  [runners.kubernetes.volumes.secret.items]
+        #    "hub" = "hubsecret"
+
+  - kind: ServiceAccount
+    apiVersion: v1
+    metadata:
+      name: ${APPLICATION_NAME}-user
+      labels:
+        app: ${APPLICATION_NAME}
+
+  - kind: RoleBinding
+    apiVersion: v1
+    metadata:
+      name: ${APPLICATION_NAME}-edit
+      labels:
+        app: ${APPLICATION_NAME}
+    subjects:
+      - kind: ServiceAccount
+        name: ${APPLICATION_NAME}-user
+    roleRef:
+      name: edit
+
+  - kind: DeploymentConfig
+    apiVersion: v1
+    metadata:
+      name: ${APPLICATION_NAME}
+      labels:
+        app: ${APPLICATION_NAME}
+    spec:
+      strategy:
+        type: Recreate
+      triggers:
+        - type: ConfigChange
+        - type: ImageChange
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - gitlab-runner
+            from:
+              kind: ImageStreamTag
+              name: gitlab-runner:latest
+      replicas: 1
+      test: false
+      selector:
+        app: ${APPLICATION_NAME}
+        deploymentconfig: ${APPLICATION_NAME}
+      template:
+        metadata:
+          labels:
+            app: ${APPLICATION_NAME}
+            deploymentconfig: ${APPLICATION_NAME}
+        spec:
+          volumes:
+            - name: scripts
+              configMap:
+                name: ${APPLICATION_NAME}-scripts
+          containers:
+            - name: gitlab-runner
+              image: gitlab-runner
+              command: ["/bin/bash", "/scripts/entrypoint"]
+              ports:
+                - containerPort: 22
+                  protocol: TCP
+                - containerPort: 80
+                  protocol: TCP
+              env:
+                - name: GITLAB_URL
+                  value: ${GITLAB_URL}
+                - name: REGISTRATION_TOKEN
+                  value: ${REGISTRATION_TOKEN}
+                - name: GITLAB_REGISTRY_URL
+                  value: ${GITLAB_REGISTRY_URL}
+                - name: MINIO_ACCESS_KEY
+                  value: ${MINIO_ACCESS_KEY}
+                - name: MINIO_SECRET_KEY
+                  value: ${MINIO_SECRET_KEY}
+                - name: MINIO_URL
+                  value: ${APPLICATION_NAME}-cache
+                - name: KUBERNETES_PRIVILEGED
+                  value: "true"
+                - name: KUBERNETES_IMAGE
+                  value: "ubuntu:16.04"
+                - name: KUBERNETES_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: "metadata.namespace"
+              resources:
+                limits:
+                  cpu: "600m"
+                  memory: "600Mi"
+                requests:
+                  cpu: "100m"
+                  memory: "300Mi"
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+              livenessProbe:
+                exec:
+                  command: ["/usr/bin/pgrep", "gitlab-runner"]
+                initialDelaySeconds: 60
+                timeoutSeconds: 1
+                periodSeconds: 10
+                successThreshold: 1
+                failureThreshold: 3
+              readinessProbe:
+                exec:
+                  command: ["/usr/bin/pgrep", "gitlab-runner"]
+                initialDelaySeconds: 10
+                timeoutSeconds: 1
+                periodSeconds: 10
+                successThreshold: 1
+                failureThreshold: 3
+              terminationMessagePath: "/dev/termination-log"
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                privileged: true
+                runAsUser: 0
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          serviceAccount: ${APPLICATION_NAME}-user
+
+  ### minio integration for cache
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: minio
+      labels:
+        app: ${APPLICATION_NAME}
+    spec:
+      tags:
+        - name: latest
+          from:
+            kind: DockerImage
+            name: minio/minio:latest
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ${APPLICATION_NAME}-cache
+      labels:
+        app: ${APPLICATION_NAME}
+    spec:
+      type: ClusterIP
+      ports:
+        - name: http
+          nodePort: 0
+          port: 80
+          protocol: TCP
+          targetPort: 9000
+      selector:
+        app: ${APPLICATION_NAME}
+        deploymentconfig: ${APPLICATION_NAME}-cache
+
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: ${APPLICATION_NAME}-cache
+      labels:
+        app: ${APPLICATION_NAME}
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: ${APPLICATION_NAME}-cache
+      labels:
+        app: ${APPLICATION_NAME}
+    spec:
+      replicas: 1
+      selector:
+        app: ${APPLICATION_NAME}
+        deploymentconfig: ${APPLICATION_NAME}-cache
+      strategy:
+        type: Recreate
+      triggers:
+        - type: ConfigChange
+        - type: ImageChange
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - minio
+            from:
+              kind: ImageStreamTag
+              name: minio:latest
+      template:
+        metadata:
+          labels:
+            app: ${APPLICATION_NAME}
+            deploymentconfig: ${APPLICATION_NAME}-cache
+        spec:
+          containers:
+            - name: minio
+              ports:
+                - containerPort: 9000
+                  name: http
+                  protocol: TCP
+              env:
+                - name: MINIO_ACCESS_KEY
+                  value: ${MINIO_ACCESS_KEY}
+                - name: MINIO_SECRET_KEY
+                  value: ${MINIO_SECRET_KEY}
+              command:
+                - /bin/sh
+                - "-c"
+                - >-
+                  /bin/mkdir -p /storage/gitlab-runner-cache; 
+                  /usr/bin/minio server /storage
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 100Mi
+                requests:
+                  cpu: 100m
+                  memory: 100Mi
+              volumeMounts:
+                - name: storage
+                  mountPath: /storage
+              readinessProbe:
+                exec:
+                  command: ["/usr/bin/pgrep", "minio"]
+                initialDelaySeconds: 5
+                timeoutSeconds: 1
+              livenessProbe:
+                tcpSocket:
+                  port: 9000
+                initialDelaySeconds: 15
+                timeoutSeconds: 10
+              terminationMessagePath: /dev/termination-log
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                privileged: false
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          serviceAccount: ${APPLICATION_NAME}-user
+          volumes:
+            - name: storage
+              persistentVolumeClaim:
+                claimName: ${APPLICATION_NAME}-cache
