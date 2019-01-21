@@ -97,14 +97,22 @@ oc new-app gitlab-runner -p GITLAB_URL=https://gitlab.${DOMAIN}/ \
 oc login -u ${USER} https://console.${DOMAIN}:8443/
 
 # install tiller 
-export TILLER_NAMESPACE=${USER}
-oc new-project ${USER}
+export TILLER_NAMESPACE=${PROJECT}
+oc new-project ${PROJECT}
 oc process -f https://github.com/openshift/origin/raw/master/examples/helm/tiller-template.yaml \
-  -p TILLER_NAMESPACE="${USER}" -p HELM_VERSION=v2.11.0 | oc apply -f -
+  -p TILLER_NAMESPACE="${PROJECT}" -p HELM_VERSION=v2.11.0 | oc apply -f -
 oc policy add-role-to-user admin -z tiller
 oc rollout status deployment tiller
 
-# Get the token for Gitlab kubernetes
+# Get the token for Gitlab kubernetes login
 oc describe secret (oc get secrets | grep -E '^tiller' | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d " " | head -n 1
 
+# Gitlab CI/CD - Domain:
+AUTO_DEVOPS_DOMAIN=apps.${DOMAIN}
+
+# Gitlab CI/CD - Variables:
+AUTO_DEVOPS_CHART_REPOSITORY=https://raw.githubusercontent.com/hardyscc/openshift-charts/master
+CODE_QUALITY_DISABLED=true
+GITLAB_FEATURES=license_management,sast,dependency_scanning,container_scanning,dast,review,stop_review
+KUBE_NAMESPACE=${PROJECT}
 -----------------------------------------------------------------------------------------------------------------
