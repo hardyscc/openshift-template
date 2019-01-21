@@ -49,6 +49,26 @@ parameters:
     from: "[a-zA-Z0-9]{40}"
     generate: expression
 
+  - description: "Http Proxy"
+    displayName: "Http Proxy"
+    name: HTTP_PROXY
+    required: false
+
+  - description: "Https Proxy"
+    displayName: "Https Proxy"
+    name: HTTPS_PROXY
+    required: false
+
+  - description: "Ftp Proxy"
+    displayName: "Ftp Proxy"
+    name: FTP_PROXY
+    required: false
+
+  - description: "No Proxy"
+    displayName: "No Proxy"
+    name: NO_PROXY
+    required: false
+
 objects:
   - kind: ImageStream
     apiVersion: v1
@@ -83,13 +103,13 @@ objects:
           --name "k8s_runner" \
           --executor kubernetes \
           --env HTTP_PROXY="$HTTP_PROXY" \
-          --env http_proxy="$http_proxy" \
+          --env http_proxy="$HTTP_PROXY" \
           --env HTTPS_PROXY="$HTTPS_PROXY" \
-          --env https_proxy="$https_proxy" \
+          --env https_proxy="$HTTPS_PROXY" \
           --env FTP_PROXY="$FTP_PROXY" \
-          --env ftp_proxy="$ftp_proxy" \
+          --env ftp_proxy="$FTP_PROXY" \
           --env NO_PROXY="$NO_PROXY" \
-          --env no_proxy="$no_proxy"
+          --env no_proxy="$NO_PROXY"
         # Add extra config
         # cat /scripts/extraconfig.yaml >> /etc/gitlab-runner/config.toml
         # Add minio config
@@ -206,6 +226,14 @@ objects:
                   valueFrom:
                     fieldRef:
                       fieldPath: "metadata.namespace"
+                - name: HTTP_PROXY
+                  value: ${HTTP_PROXY}
+                - name: HTTPS_PROXY
+                  value: ${HTTPS_PROXY}
+                - name: FTP_PROXY
+                  value: ${FTP_PROXY}
+                - name: NO_PROXY
+                  value: ${NO_PROXY}
               resources:
                 limits:
                   cpu: "600m"

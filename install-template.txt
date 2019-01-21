@@ -6,14 +6,14 @@
 
 -----------------------------------------------------------------------------------------------------------------
 # copy ssh public key over to server
-ssh-copy-id -i ~/.ssh/id_rsa.pub ${USER}@${DOMAIN}
+ssh-copy-id -i ~/.ssh/id_rsa.pub $USER@$DOMAIN
 
 # ssh to server and become root
-ssh ${USER}@${DOMAIN}
+ssh $USER@$DOMAIN
 sudo -i
 
 # add sudoers
-echo '${USER} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/${USER}
+echo '$USER ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/$USER
 
 # set locale under /etc/environment
 cat << EOF >> /etc/environment
@@ -23,9 +23,9 @@ EOF
 
 # set proxy under /etc/environment (only if required)
 cat << EOF >> /etc/environment
-http_proxy="${HTTP_PROXY}"
-https_proxy="${HTTP_PROXY}"
-no_proxy="localhost,127.0.0.1,localaddress,.localdomain.com,.cluster.local,.svc,172.30.0.1,.${DOMAIN}"
+http_proxy="$HTTP_PROXY"
+https_proxy="$HTTP_PROXY"
+no_proxy="localhost,127.0.0.1,localaddress,.localdomain.com,.cluster.local,.svc,172.30.0.1,.$DOMAIN"
 EOF
 
 # update system
@@ -37,17 +37,17 @@ yum -y install epel-release
 yum -y install certbot
 
 # generate certificates
-certbot certonly --manual --preferred-challenges dns -d console.${DOMAIN}
-certbot certonly --manual --preferred-challenges dns -d registry.${DOMAIN}
-certbot certonly --manual --preferred-challenges dns -d gitlab.${DOMAIN}
-certbot certonly --manual --preferred-challenges dns -d *.apps.${DOMAIN}
+certbot certonly --manual --preferred-challenges dns -d console.$DOMAIN
+certbot certonly --manual --preferred-challenges dns -d registry.$DOMAIN
+certbot certonly --manual --preferred-challenges dns -d gitlab.$DOMAIN
+certbot certonly --manual --preferred-challenges dns -d *.apps.$DOMAIN
 
 -----------------------------------------------------------------------------------------------------------------
 # install git
 yum -y install git
 
 # set proxy (only if required)
-git config --global --add http.proxy "${HTTP_PROXY}"
+git config --global --add http.proxy "$HTTP_PROXY"
 
 # install openshift
 git clone https://github.com/hardyscc/installcentos.git
@@ -60,10 +60,10 @@ ansible-playbook -i inventory.ini openshift-ansible/playbooks/adhoc/uninstall.ym
 
 -----------------------------------------------------------------------------------------------------------------
 # create openshift user
-htpasswd /etc/origin/master/htpasswd ${USER}
-oc create user ${USER}
-oc create identity htpasswd_auth:${USER}
-oc create useridentitymapping htpasswd_auth:${USER} ${USER}
+htpasswd /etc/origin/master/htpasswd $USER
+oc create user $USER
+oc create identity htpasswd_auth:$USER
+oc create useridentitymapping htpasswd_auth:$USER $USER
 
 -----------------------------------------------------------------------------------------------------------------
 # enable anyuid access for whole cluster (required for heroku image)
@@ -75,11 +75,11 @@ oc new-project gitlab
 oc create -f gitlab-template.yaml
 oc adm policy add-scc-to-user privileged -z gitlab-ce-user
 oc create secret generic gitlab-cert -n gitlab \
-  --from-file=gitlab.crt=/etc/letsencrypt/live/gitlab.${DOMAIN}/fullchain.pem \
-  --from-file=gitlab.key=/etc/letsencrypt/live/gitlab.${DOMAIN}/privkey.pem \
-  --from-file=registry.crt=/etc/letsencrypt/live/registry.${DOMAIN}/fullchain.pem \
-  --from-file=registry.key=/etc/letsencrypt/live/registry.${DOMAIN}/privkey.pem
-oc new-app gitlab-ce -p APPLICATION_DOMAIN=${DOMAIN}
+  --from-file=gitlab.crt=/etc/letsencrypt/live/gitlab.$DOMAIN/fullchain.pem \
+  --from-file=gitlab.key=/etc/letsencrypt/live/gitlab.$DOMAIN/privkey.pem \
+  --from-file=registry.crt=/etc/letsencrypt/live/registry.$DOMAIN/fullchain.pem \
+  --from-file=registry.key=/etc/letsencrypt/live/registry.$DOMAIN/privkey.pem
+oc new-app gitlab-ce -p APPLICATION_DOMAIN=$DOMAIN
 
 -----------------------------------------------------------------------------------------------------------------
 # install gitlab runner
@@ -88,19 +88,22 @@ oc new-app gitlab-ce -p APPLICATION_DOMAIN=${DOMAIN}
 oc new-project gitlab-runner
 oc create -f gitlab-runner-template.yaml
 oc adm policy add-scc-to-user privileged -z gitlab-runner-user 
-oc new-app gitlab-runner -p GITLAB_URL=https://gitlab.${DOMAIN}/ \
+oc new-app gitlab-runner -p GITLAB_URL=https://gitlab.$DOMAIN/ \
   -p REGISTRATION_TOKEN=xxxxxxxxxxxxxxxxxx \
-  -p GITLAB_REGISTRY_URL=registry.${DOMAIN}
+  -p GITLAB_REGISTRY_URL=registry.$DOMAIN \
+  -p HTTP_PROXY="$HTTP_PROXY" \
+  -p HTTPS_PROXY="$HTTP_PROXY" \
+  -p NO_PROXY="localhost,127.0.0.1,localaddress,.localdomain.com,.cluster.local,.svc,172.30.0.1,.$DOMAIN"
 
 -----------------------------------------------------------------------------------------------------------------
 # login as normal user
-oc login -u ${USER} https://console.${DOMAIN}:8443/
+oc login -u $USER https://console.$DOMAIN:8443/
 
 # install tiller 
-export TILLER_NAMESPACE=${PROJECT}
-oc new-project ${PROJECT}
+export TILLER_NAMESPACE=$PROJECT
+oc new-project $PROJECT
 oc process -f https://github.com/openshift/origin/raw/master/examples/helm/tiller-template.yaml \
-  -p TILLER_NAMESPACE="${PROJECT}" -p HELM_VERSION=v2.11.0 | oc apply -f -
+  -p TILLER_NAMESPACE="$PROJECT" -p HELM_VERSION=v2.11.0 | oc apply -f -
 oc policy add-role-to-user admin -z tiller
 oc rollout status deployment tiller
 
@@ -108,11 +111,11 @@ oc rollout status deployment tiller
 oc describe secret (oc get secrets | grep -E '^tiller' | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d " " | head -n 1
 
 # Gitlab CI/CD - Domain:
-AUTO_DEVOPS_DOMAIN=apps.${DOMAIN}
+AUTO_DEVOPS_DOMAIN=apps.$DOMAIN
 
 # Gitlab CI/CD - Variables:
 AUTO_DEVOPS_CHART_REPOSITORY=https://raw.githubusercontent.com/hardyscc/openshift-charts/master
 CODE_QUALITY_DISABLED=true
 GITLAB_FEATURES=license_management,sast,dependency_scanning,container_scanning,dast,review,stop_review
-KUBE_NAMESPACE=${PROJECT}
+KUBE_NAMESPACE=$PROJECT
 -----------------------------------------------------------------------------------------------------------------
