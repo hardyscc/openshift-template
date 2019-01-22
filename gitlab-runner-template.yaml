@@ -127,7 +127,7 @@ objects:
           --working-directory=/home/gitlab-runner
 
       config.toml: |
-        concurrent = 10
+        concurrent = 1
         check_interval = 10
 
       # extraconfig.yaml: |
