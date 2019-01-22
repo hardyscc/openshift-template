@@ -83,13 +83,13 @@ oc new-app gitlab-ce -p APPLICATION_DOMAIN=$DOMAIN
 
 -----------------------------------------------------------------------------------------------------------------
 # install gitlab runner
-## lookup the gitlab runner registration token under gitlab administration page
+## lookup the gitlab runner REGISTRATION_TOKEN under : (login as root) Overview > Runners
 
 oc new-project gitlab-runner
 oc create -f https://raw.githubusercontent.com/hardyscc/openshift-template/master/gitlab-runner-template.yaml
 oc adm policy add-scc-to-user privileged -z gitlab-runner-user 
 oc new-app gitlab-runner -p GITLAB_URL=https://gitlab.$DOMAIN/ \
-  -p REGISTRATION_TOKEN=xxxxxxxxxxxxxxxxxx \
+  -p REGISTRATION_TOKEN="$REGISTRATION_TOKEN" \
   -p GITLAB_REGISTRY_URL=registry.$DOMAIN \
   -p HTTP_PROXY="$HTTP_PROXY" \
   -p HTTPS_PROXY="$HTTP_PROXY" \
@@ -107,15 +107,33 @@ oc process -f https://github.com/openshift/origin/raw/master/examples/helm/tille
 oc policy add-role-to-user admin -z tiller
 oc rollout status deployment tiller
 
-# Get the token for Gitlab kubernetes login
-oc describe secret (oc get secrets | grep -E '^tiller' | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d " " | head -n 1
+-----------------------------------------------------------------------------------------------------------------
+# Gitlab administration config: (login as root)
 
-# Gitlab CI/CD - Domain:
-AUTO_DEVOPS_DOMAIN=apps.$DOMAIN
+1. Overview > Users - Add User $USER
+2. Settings > CI/CD > Continuous Integration and Deployment - set Auto devops domain as apps.$DOMAIN
 
-# Gitlab CI/CD - Variables:
-AUTO_DEVOPS_CHART_REPOSITORY=https://raw.githubusercontent.com/hardyscc/openshift-charts/master
-CODE_QUALITY_DISABLED=true
-GITLAB_FEATURES=license_management,sast,dependency_scanning,container_scanning,dast,review,stop_review
-KUBE_NAMESPACE=$PROJECT
+-----------------------------------------------------------------------------------------------------------------
+# Gitlab project config: (login as $USER)
+## look up KUBE_TOKEN using
+## > oc describe secret (oc get secrets | grep -E '^tiller' | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d " " | head -n 1
+
+1. Operations > Kubernetes > Add Existing cluster
+   - Kubernetes cluster name: openshift
+   - API URL: https://console.$DOMAIN:8443/
+   - Token: $KUBE_TOKEN
+   - Project namespace: $PROJECT
+   - RBAC-enabled cluster: true
+2. Settings > CI/CD > Variables 
+  AUTO_DEVOPS_CHART_REPOSITORY=https://raw.githubusercontent.com/hardyscc/openshift-charts/master
+  CODE_QUALITY_DISABLED=true
+  GITLAB_FEATURES=license_management,sast,dependency_scanning,container_scanning,dast,review,stop_review
+
+-----------------------------------------------------------------------------------------------------------------
+# patches required for .gitlab-ci.yml
+
+1. replace 'docker:6060' to 'localhost:6060'
+2. add 'apk add -U wget ca-certificates' before 'wget -O gitlab-exporter/index.js ...' 
+3. replace 'https://charts.gitlab.io' to 'https://raw.githubusercontent.com/hardyscc/openshift-charts/master' (gitlab version < 11.7)
+
 -----------------------------------------------------------------------------------------------------------------
