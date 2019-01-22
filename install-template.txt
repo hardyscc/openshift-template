@@ -80,6 +80,7 @@ oc create secret generic gitlab-cert -n gitlab \
   --from-file=registry.crt=/etc/letsencrypt/live/registry.$DOMAIN/fullchain.pem \
   --from-file=registry.key=/etc/letsencrypt/live/registry.$DOMAIN/privkey.pem
 oc new-app gitlab-ce -p APPLICATION_DOMAIN=$DOMAIN
+oc rollout status deploymentconfig gitlab-ce
 
 -----------------------------------------------------------------------------------------------------------------
 # install gitlab runner
@@ -94,6 +95,7 @@ oc new-app gitlab-runner -p GITLAB_URL=https://gitlab.$DOMAIN/ \
   -p HTTP_PROXY="$HTTP_PROXY" \
   -p HTTPS_PROXY="$HTTP_PROXY" \
   -p NO_PROXY="localhost,127.0.0.1,localaddress,.localdomain.com,.cluster.local,.svc,172.30.0.1,.$DOMAIN"
+oc rollout status deploymentconfig gitlab-runner
 
 -----------------------------------------------------------------------------------------------------------------
 # login as normal user
