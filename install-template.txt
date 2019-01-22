@@ -84,7 +84,8 @@ oc rollout status deploymentconfig gitlab-ce
 
 -----------------------------------------------------------------------------------------------------------------
 # install gitlab runner
-## lookup the gitlab runner REGISTRATION_TOKEN under : (login as root) Overview > Runners
+## Goto https://gitlab.$DOMAIN:8443/
+## lookup the gitlab runner REGISTRATION_TOKEN under Overview > Runners
 
 oc new-project gitlab-runner
 oc create -f https://raw.githubusercontent.com/hardyscc/openshift-template/master/gitlab-runner-template.yaml
@@ -139,3 +140,12 @@ oc rollout status deployment tiller
 3. replace 'https://charts.gitlab.io' to 'https://raw.githubusercontent.com/hardyscc/openshift-charts/master' (gitlab version < 11.7)
 
 -----------------------------------------------------------------------------------------------------------------
+# Notes :
+
+# create a cluster-admin service account 
+oc create serviceaccount admin-user -n kube-system
+oc create clusterrolebinding admin-user-rb \
+  --clusterrole=cluster-admin \
+  --serviceaccount=kube-system:admin-user
+# get the token
+oc -n kube-system describe secret $(oc -n kube-system get secret | grep admin-user-token | awk '{print $1}' | head -n 1)
