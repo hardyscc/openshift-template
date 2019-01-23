@@ -119,7 +119,8 @@ oc rollout status deployment tiller
 -----------------------------------------------------------------------------------------------------------------
 # Gitlab project config: (login as $USER)
 ## look up KUBE_TOKEN using
-## > oc describe secret (oc get secrets | grep -E '^tiller' | cut -f1 -d ' ') | grep -E '^token' | cut -f2 -d':' | tr -d " " | head -n 1
+## > oc project $PROJECT
+## > oc describe secret (oc describe serviceaccount tiller | grep 'tiller-token' | head -n 1 | awk '{print $1}')
 
 1. Operations > Kubernetes > Add Existing cluster
    - Kubernetes cluster name: openshift
@@ -142,10 +143,13 @@ oc rollout status deployment tiller
 -----------------------------------------------------------------------------------------------------------------
 # Notes :
 
-# create a cluster-admin service account 
-oc create serviceaccount admin-user -n kube-system
-oc create clusterrolebinding admin-user-rb \
+# create a cluster-admin service account for tiller 
+oc project kube-system
+oc create serviceaccount tiller
+oc create clusterrolebinding tiller \
   --clusterrole=cluster-admin \
-  --serviceaccount=kube-system:admin-user
+  --serviceaccount=kube-system:tiller
+
 # get the token
-oc -n kube-system describe secret $(oc -n kube-system get secret | grep admin-user-token | awk '{print $1}' | head -n 1)
+oc project kube-system
+oc describe secret (oc describe serviceaccount tiller | grep 'tiller-token' | head -n 1 | awk '{print $1}')
