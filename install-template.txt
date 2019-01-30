@@ -37,10 +37,11 @@ yum -y install epel-release
 yum -y install certbot
 
 # generate certificates
-certbot certonly --manual --preferred-challenges dns -d console.$DOMAIN
-certbot certonly --manual --preferred-challenges dns -d registry.$DOMAIN
-certbot certonly --manual --preferred-challenges dns -d gitlab.$DOMAIN
-certbot certonly --manual --preferred-challenges dns -d *.apps.$DOMAIN
+certbot certonly --manual \
+        --preferred-challenges dns \
+        -d $DOMAIN \
+        -d *.$DOMAIN \
+        -d *.apps.$DOMAIN
 
 -----------------------------------------------------------------------------------------------------------------
 # install git
@@ -75,10 +76,10 @@ oc new-project gitlab
 oc create -f https://raw.githubusercontent.com/hardyscc/openshift-template/master/gitlab-template.yaml
 oc adm policy add-scc-to-user privileged -z gitlab-ce-user
 oc create secret generic gitlab-cert -n gitlab \
-  --from-file=gitlab.crt=/etc/letsencrypt/live/gitlab.$DOMAIN/fullchain.pem \
-  --from-file=gitlab.key=/etc/letsencrypt/live/gitlab.$DOMAIN/privkey.pem \
-  --from-file=registry.crt=/etc/letsencrypt/live/registry.$DOMAIN/fullchain.pem \
-  --from-file=registry.key=/etc/letsencrypt/live/registry.$DOMAIN/privkey.pem
+  --from-file=gitlab.crt=/etc/letsencrypt/live/$DOMAIN/fullchain.pem \
+  --from-file=gitlab.key=/etc/letsencrypt/live/$DOMAIN/privkey.pem \
+  --from-file=registry.crt=/etc/letsencrypt/live/$DOMAIN/fullchain.pem \
+  --from-file=registry.key=/etc/letsencrypt/live/$DOMAIN/privkey.pem
 oc new-app gitlab-ce -p APPLICATION_DOMAIN=$DOMAIN
 oc rollout status deploymentconfig gitlab-ce
 
