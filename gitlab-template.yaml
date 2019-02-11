@@ -22,10 +22,10 @@ objects:
       name: ${APPLICATION_NAME}
     spec:
       tags:
-        - name: gitlab-11.6.5
+        - name: gitlab-11.7.5
           from:
             kind: DockerImage
-            name: gitlab/gitlab-ce:11.6.5-ce.0
+            name: gitlab/gitlab-ce:11.7.5-ce.0
 
   - apiVersion: v1
     kind: ImageStream
@@ -125,7 +125,7 @@ objects:
                 timeoutSeconds: 1
               resources:
                 limits:
-                  cpu: '1'
+                  cpu: "1"
                   memory: 2Gi
                 requests:
                   cpu: 500m
@@ -162,7 +162,7 @@ objects:
               - gitlab-ce
             from:
               kind: ImageStreamTag
-              name: ${APPLICATION_NAME}:gitlab-11.6.5
+              name: ${APPLICATION_NAME}:gitlab-11.7.5
           type: ImageChange
 
   - apiVersion: v1
@@ -200,7 +200,7 @@ objects:
                   protocol: TCP
               resources:
                 limits:
-                  cpu: '1'
+                  cpu: "1"
                   memory: 512Mi
                 requests:
                   cpu: 100m
@@ -300,10 +300,10 @@ objects:
                 timeoutSeconds: 1
               resources:
                 limits:
-                  cpu: '1'
+                  cpu: "1"
                   memory: 512Mi
                 requests:
-                  cpu: '1'
+                  cpu: "1"
                   memory: 512Mi
               terminationMessagePath: /dev/termination-log
               volumeMounts:
@@ -489,13 +489,13 @@ parameters:
     required: true
   - description: Password for the PostgreSQL user.
     displayName: PostgreSQL Password
-    from: '[a-zA-Z0-9]{16}'
+    from: "[a-zA-Z0-9]{16}"
     generate: expression
     name: POSTGRESQL_PASSWORD
     required: true
   - description: Password for the PostgreSQL Admin user.
     displayName: PostgreSQL Admin User Password
-    from: '[a-zA-Z0-9]{16}'
+    from: "[a-zA-Z0-9]{16}"
     generate: expression
     name: POSTGRESQL_ADMIN_PASSWORD
     required: true
@@ -508,7 +508,7 @@ parameters:
     displayName: Number of Unicorn Workers
     name: UNICORN_WORKERS
     required: true
-    value: '2'
+    value: "2"
   - description: Volume size for /etc
     displayName: /etc/gitlab volume size
     name: ETC_VOL_SIZE

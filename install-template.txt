@@ -87,7 +87,7 @@ oc rollout status deploymentconfig gitlab-ce
 
 -----------------------------------------------------------------------------------------------------------------
 # install gitlab runner
-## Goto https://gitlab.$DOMAIN:8443/
+## Goto https://gitlab.$DOMAIN
 ## lookup the gitlab runner REGISTRATION_TOKEN under Overview > Runners
 
 oc new-project gitlab-runner
@@ -103,7 +103,7 @@ oc rollout status deploymentconfig gitlab-runner
 
 -----------------------------------------------------------------------------------------------------------------
 # login as normal user
-oc login -u $USER https://console.$DOMAIN:8443/
+oc login -u $USER https://console.$DOMAIN:8443
 
 # install tiller 
 export TILLER_NAMESPACE=$PROJECT
