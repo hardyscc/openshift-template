@@ -123,7 +123,7 @@ oc rollout status deployment tiller
 # Gitlab project config: (login as $USER)
 ## look up KUBE_TOKEN using
 ## > oc project $PROJECT
-## > oc describe secret (oc describe serviceaccount tiller | grep 'tiller-token' | head -n 1 | awk '{print $1}')
+## > oc describe secret $(oc describe serviceaccount tiller | grep tiller-token | head -n 1 | awk '{print $1}')
 
 1. Operations > Kubernetes > Add Existing cluster
    - Kubernetes cluster name: openshift
@@ -140,19 +140,18 @@ oc rollout status deployment tiller
 # patches required for .gitlab-ci.yml
 
 1. replace 'docker:6060' to 'localhost:6060'
-2. add 'apk add -U wget ca-certificates' before 'wget -O gitlab-exporter/index.js ...' 
-3. replace 'https://charts.gitlab.io' to 'https://raw.githubusercontent.com/hardyscc/openshift-charts/master' (gitlab version < 11.7)
+2. add 'apk add -U wget ca-certificates' before 'wget -O gitlab-exporter/index.js ...'
 
 -----------------------------------------------------------------------------------------------------------------
 # Notes :
 
-# create a cluster-admin service account for tiller 
+# create a cluster-admin service account for helm deployment 
 oc project kube-system
-oc create serviceaccount tiller
-oc create clusterrolebinding tiller \
+oc create serviceaccount admin-user
+oc create clusterrolebinding admin-user \
   --clusterrole=cluster-admin \
-  --serviceaccount=kube-system:tiller
+  --serviceaccount=kube-system:admin-user
 
 # get the token
 oc project kube-system
-oc describe secret (oc describe serviceaccount tiller | grep 'tiller-token' | head -n 1 | awk '{print $1}')
+oc describe secret $(oc describe serviceaccount admin-user | grep admin-user-token | head -n 1 | awk '{print $1}')
