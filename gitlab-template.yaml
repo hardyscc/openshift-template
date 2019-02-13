@@ -19,13 +19,13 @@ objects:
     metadata:
       labels:
         app: ${APPLICATION_NAME}
-      name: ${APPLICATION_NAME}
+      name: gitlab-ce
     spec:
       tags:
-        - name: gitlab-11.6.5
+        - name: latest
           from:
             kind: DockerImage
-            name: gitlab/gitlab-ce:11.6.5-ce.0
+            name: gitlab/gitlab-ce:latest
 
   - apiVersion: v1
     kind: ImageStream
@@ -162,7 +162,7 @@ objects:
               - gitlab-ce
             from:
               kind: ImageStreamTag
-              name: ${APPLICATION_NAME}:gitlab-11.6.5
+              name: gitlab-ce:latest
           type: ImageChange
 
   - apiVersion: v1
