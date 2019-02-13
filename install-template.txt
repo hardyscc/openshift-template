@@ -81,7 +81,11 @@ oc create secret generic gitlab-cert -n gitlab \
   --from-file=gitlab.key=/etc/letsencrypt/live/gitlab.$DOMAIN/privkey.pem \
   --from-file=registry.crt=/etc/letsencrypt/live/registry.$DOMAIN/fullchain.pem \
   --from-file=registry.key=/etc/letsencrypt/live/registry.$DOMAIN/privkey.pem
-oc new-app gitlab-ce -p APPLICATION_DOMAIN=$DOMAIN
+oc new-app gitlab-ce \
+  -p APPLICATION_DOMAIN=$DOMAIN \
+  -p HTTP_PROXY="$HTTP_PROXY" \
+  -p HTTPS_PROXY="$HTTP_PROXY" \
+  -p NO_PROXY="localhost,127.0.0.1,localaddress,.localdomain.com,.cluster.local,.svc,172.30.0.1,.$DOMAIN"
 oc rollout status deploymentconfig gitlab-ce
 
 -----------------------------------------------------------------------------------------------------------------
@@ -92,7 +96,8 @@ oc rollout status deploymentconfig gitlab-ce
 oc new-project gitlab-runner
 oc create -f https://raw.githubusercontent.com/hardyscc/openshift-template/master/gitlab-runner-template.yaml
 oc adm policy add-scc-to-user privileged -z gitlab-runner-user 
-oc new-app gitlab-runner -p GITLAB_URL=https://gitlab.$DOMAIN/ \
+oc new-app gitlab-runner \
+  -p GITLAB_URL=https://gitlab.$DOMAIN/ \
   -p REGISTRATION_TOKEN="$REGISTRATION_TOKEN" \
   -p GITLAB_REGISTRY_URL=registry.$DOMAIN \
   -p HTTP_PROXY="$HTTP_PROXY" \
