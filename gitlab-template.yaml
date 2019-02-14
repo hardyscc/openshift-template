@@ -98,14 +98,6 @@ objects:
                     registry_external_url "https://registry.#{domain}" unless domain.to_s == '';
                     registry_nginx['ssl_certificate'] = '/gitlab-cert/registry.crt';
                     registry_nginx['ssl_certificate_key'] = '/gitlab-cert/registry.key';
-                - name: HTTP_PROXY
-                  value: ${HTTP_PROXY}
-                - name: HTTPS_PROXY
-                  value: ${HTTPS_PROXY}
-                - name: FTP_PROXY
-                  value: ${FTP_PROXY}
-                - name: NO_PROXY
-                  value: ${NO_PROXY}
               ports:
                 - containerPort: 22
                   protocol: TCP
@@ -533,19 +525,3 @@ parameters:
     displayName: redis volume size
     name: REDIS_VOL_SIZE
     value: 512Mi
-  - description: "Http Proxy"
-    displayName: "Http Proxy"
-    name: HTTP_PROXY
-    required: false
-  - description: "Https Proxy"
-    displayName: "Https Proxy"
-    name: HTTPS_PROXY
-    required: false
-  - description: "Ftp Proxy"
-    displayName: "Ftp Proxy"
-    name: FTP_PROXY
-    required: false
-  - description: "No Proxy"
-    displayName: "No Proxy"
-    name: NO_PROXY
-    required: false
