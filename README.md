@@ -7,6 +7,7 @@ export DOMAIN=<your domain>
 export USER=<user name>
 export PROJECT=<project name>
 export HTTP_PROXY=<http proxy (only if required)>
+export DOLLAR='$'
 
 envsubst < install-template.txt > install.txt
 ```
