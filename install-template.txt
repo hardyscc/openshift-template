@@ -31,6 +31,13 @@ EOF
 # update system
 yum -y update
 
+# this may need if u don't have your own domain during install
+yum -y install dnsmasq 
+cat << EOF >> /etc/dnsmasq.conf
+address=/$DOMAIN/$(ip -4 addr show eno1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+EOF
+systemctl restart dnsmasq
+
 -----------------------------------------------------------------------------------------------------------------
 # install certbot
 yum -y install epel-release 
