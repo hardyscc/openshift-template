@@ -120,7 +120,7 @@ oc rollout status deploymentconfig gitlab-runner
    - Kubernetes cluster name: openshift
    - API URL: https://console.$DOMAIN:8443/
    - Token: $KUBE_TOKEN
-   - Project namespace: $PROJECT
+   - Project namespace: Empty
    - RBAC-enabled cluster: true
 2. Settings > CI/CD > Variables 
   AUTO_DEVOPS_CHART_REPOSITORY=https://raw.githubusercontent.com/hardyscc/openshift-charts/master
