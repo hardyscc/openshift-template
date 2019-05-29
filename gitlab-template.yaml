@@ -28,19 +28,6 @@ objects:
             name: gitlab/gitlab-ce:latest
 
   - apiVersion: v1
-    kind: ImageStream
-    metadata:
-      labels:
-        app: ${APPLICATION_NAME}
-      name: ${APPLICATION_NAME}-redis
-    spec:
-      tags:
-        - name: 3.2.3
-          from:
-            kind: DockerImage
-            name: redis:3.2.3-alpine
-
-  - apiVersion: v1
     kind: ServiceAccount
     metadata:
       name: ${APPLICATION_NAME}-user
@@ -109,20 +96,12 @@ objects:
                   port: 443
                   scheme: HTTPS
                 initialDelaySeconds: 20
-                timeoutSeconds: 1
-                periodSeconds: 10
-                successThreshold: 1
-                failureThreshold: 3
               livenessProbe:
                 httpGet:
                   path: /help
                   port: 443
                   scheme: HTTPS
                 initialDelaySeconds: 60
-                timeoutSeconds: 1
-                periodSeconds: 10
-                successThreshold: 1
-                failureThreshold: 3
               resources:
                 limits:
                   cpu: "1"
@@ -177,8 +156,6 @@ objects:
         app: ${APPLICATION_NAME}
         deploymentconfig: ${APPLICATION_NAME}-redis
       strategy:
-        recreateParams: {}
-        resources: {}
         type: Recreate
       template:
         metadata:
@@ -187,17 +164,26 @@ objects:
             deploymentconfig: ${APPLICATION_NAME}-redis
         spec:
           containers:
-            - args:
-                - exec redis-server
-              command:
-                - /bin/sh
-                - -ec
-              image: gitlab-ce-redis
+            - image: gitlab-ce-redis
               imagePullPolicy: IfNotPresent
               name: gitlab-ce-redis
               ports:
                 - containerPort: 6379
                   protocol: TCP
+              readinessProbe:
+                exec:
+                  command:
+                    - /bin/sh
+                    - -i
+                    - -c
+                    - test "$(redis-cli -h 127.0.0.1 ping)" == "PONG"
+                initialDelaySeconds: 5
+                timeoutSeconds: 1
+              livenessProbe:
+                initialDelaySeconds: 30
+                tcpSocket:
+                  port: 6379
+                timeoutSeconds: 1
               resources:
                 limits:
                   cpu: "1"
@@ -207,7 +193,7 @@ objects:
                   memory: 300Mi
               terminationMessagePath: /dev/termination-log
               volumeMounts:
-                - mountPath: /data
+                - mountPath: /var/lib/redis/data
                   name: gitlab-ce-volume-4
           dnsPolicy: ClusterFirst
           restartPolicy: Always
@@ -225,7 +211,8 @@ objects:
               - gitlab-ce-redis
             from:
               kind: ImageStreamTag
-              name: ${APPLICATION_NAME}-redis:3.2.3
+              name: redis:3.2
+              namespace: openshift
           type: ImageChange
 
   - apiVersion: v1
@@ -279,11 +266,6 @@ objects:
                   value: ${POSTGRESQL_ADMIN_PASSWORD}
               image: gitlab-ce-postgresql
               imagePullPolicy: IfNotPresent
-              livenessProbe:
-                initialDelaySeconds: 30
-                tcpSocket:
-                  port: 5432
-                timeoutSeconds: 1
               name: gitlab-ce-postgresql
               ports:
                 - containerPort: 5432
@@ -297,7 +279,10 @@ objects:
                     - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c
                       'SELECT 1'
                 initialDelaySeconds: 5
-                timeoutSeconds: 1
+              livenessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 30
               resources:
                 limits:
                   cpu: "1"
