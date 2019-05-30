@@ -44,8 +44,6 @@ objects:
         app: ${APPLICATION_NAME}
         deploymentconfig: ${APPLICATION_NAME}
       strategy:
-        recreateParams: {}
-        resources: {}
         type: Recreate
       template:
         metadata:
@@ -101,7 +99,7 @@ objects:
                   path: /help
                   port: 443
                   scheme: HTTPS
-                initialDelaySeconds: 60
+                initialDelaySeconds: 120
               resources:
                 limits:
                   cpu: "1"
@@ -178,12 +176,10 @@ objects:
                     - -c
                     - test "$(redis-cli -h 127.0.0.1 ping)" == "PONG"
                 initialDelaySeconds: 5
-                timeoutSeconds: 1
               livenessProbe:
-                initialDelaySeconds: 30
                 tcpSocket:
                   port: 6379
-                timeoutSeconds: 1
+                initialDelaySeconds: 120
               resources:
                 limits:
                   cpu: "1"
@@ -246,7 +242,6 @@ objects:
                 - name: CONTAINER_SCRIPTS_PATH
                   value: /usr/share/container-scripts/postgresql
             failurePolicy: Abort
-        resources: {}
         type: Recreate
       template:
         metadata:
@@ -282,7 +277,7 @@ objects:
               livenessProbe:
                 tcpSocket:
                   port: 5432
-                initialDelaySeconds: 30
+                initialDelaySeconds: 120
               resources:
                 limits:
                   cpu: "1"
@@ -468,7 +463,7 @@ parameters:
     name: GITLAB_ROOT_PASSWORD
   - description: Username for PostgreSQL user that will be used for accessing the database.
     displayName: PostgreSQL User
-    from: user[A-Z0-9]{3}
+    from: "user[A-Z0-9]{3}"
     generate: expression
     name: POSTGRESQL_USER
     required: true
