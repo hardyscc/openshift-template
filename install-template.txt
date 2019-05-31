@@ -82,7 +82,7 @@ oc adm policy add-scc-to-group anyuid system:authenticated
 # install gitlab
 oc new-project gitlab
 oc create -f https://raw.githubusercontent.com/hardyscc/openshift-template/master/gitlab-template.yaml
-oc adm policy add-scc-to-user privileged -z gitlab-ce-user
+oc adm policy add-scc-to-user anyuid -z gitlab-ce-user
 oc create secret generic gitlab-cert -n gitlab \
   --from-file=gitlab.crt=/etc/letsencrypt/live/gitlab.$DOMAIN/fullchain.pem \
   --from-file=gitlab.key=/etc/letsencrypt/live/gitlab.$DOMAIN/privkey.pem \
@@ -107,6 +107,9 @@ oc new-app gitlab-runner \
   -p HTTPS_PROXY="$HTTP_PROXY" \
   -p NO_PROXY="localhost,127.0.0.1,localaddress,.localdomain.com,.cluster.local,.svc,172.30.0.1,.$DOMAIN"
 oc rollout status deploymentconfig gitlab-runner
+
+## gitlab-runner need privileged bcos of dind (docker in docker)
+## https://docs.gitlab.com/runner/executors/kubernetes.html#using-dockerdind
 
 -----------------------------------------------------------------------------------------------------------------
 # login as normal user
