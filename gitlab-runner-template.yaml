@@ -21,49 +21,40 @@ parameters:
     name: APPLICATION_NAME
     value: "gitlab-runner"
     required: true
-
   - description: "URL that GitLab can be reached at"
     displayName: "GitLab URL"
     name: GITLAB_URL
     required: true
-
   - description: "Runner Registration Token from the GitLab app"
     displayName: "Registration Token."
     name: REGISTRATION_TOKEN
     required: true
-
   - description: "URL that GitLab registry can be reached at"
     displayName: "GitLab Registry URL"
     name: GITLAB_REGISTRY_URL
     required: true
-
   - description: Custom username or access key of 5 to 20 characters in length.
     displayName: Minio Cloud Storage Access Key
     name: MINIO_ACCESS_KEY
     from: "[a-zA-Z0-9]{20}"
     generate: expression
-
   - description: Custom password or secret key of 8 to 40 characters in length.
     displayName: Minio Cloud Storage Secret Key
     name: MINIO_SECRET_KEY
     from: "[a-zA-Z0-9]{40}"
     generate: expression
-
   - description: "Http Proxy"
     displayName: "Http Proxy"
     name: HTTP_PROXY
     required: false
-
   - description: "Https Proxy"
     displayName: "Https Proxy"
     name: HTTPS_PROXY
     required: false
-
   - description: "Ftp Proxy"
     displayName: "Ftp Proxy"
     name: FTP_PROXY
     required: false
-
   - description: "No Proxy"
     displayName: "No Proxy"
     name: NO_PROXY
@@ -244,22 +235,14 @@ objects:
               volumeMounts:
                 - name: scripts
                   mountPath: /scripts
-              livenessProbe:
-                exec:
-                  command: ["/usr/bin/pgrep", "gitlab-runner"]
-                initialDelaySeconds: 60
-                timeoutSeconds: 1
-                periodSeconds: 10
-                successThreshold: 1
-                failureThreshold: 3
               readinessProbe:
                 exec:
                   command: ["/usr/bin/pgrep", "gitlab-runner"]
                 initialDelaySeconds: 10
-                timeoutSeconds: 1
-                periodSeconds: 10
-                successThreshold: 1
-                failureThreshold: 3
+              livenessProbe:
+                exec:
+                  command: ["/usr/bin/pgrep", "gitlab-runner"]
+                initialDelaySeconds: 60
               terminationMessagePath: "/dev/termination-log"
               imagePullPolicy: IfNotPresent
               securityContext:
@@ -383,8 +366,6 @@ objects:
                 timeoutSeconds: 10
               terminationMessagePath: /dev/termination-log
               imagePullPolicy: IfNotPresent
-              securityContext:
-                privileged: false
           restartPolicy: Always
           terminationGracePeriodSeconds: 30
           dnsPolicy: ClusterFirst
