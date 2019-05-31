@@ -99,7 +99,7 @@ objects:
                   path: /help
                   port: 443
                   scheme: HTTPS
-                initialDelaySeconds: 120
+                initialDelaySeconds: 180
               resources:
                 limits:
                   cpu: "1"
