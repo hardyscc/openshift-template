@@ -79,11 +79,11 @@ oc create useridentitymapping htpasswd_auth:$USER $USER
 oc adm policy add-scc-to-group anyuid system:authenticated
 
 -----------------------------------------------------------------------------------------------------------------
-# install gitlab
-oc new-project gitlab
+# install gitlab-ce
+oc new-project gitlab-ce
 oc create -f https://raw.githubusercontent.com/hardyscc/openshift-template/master/gitlab-template.yaml
 oc adm policy add-scc-to-user anyuid -z gitlab-ce-user
-oc create secret generic gitlab-cert -n gitlab \
+oc create secret generic gitlab-cert \
   --from-file=gitlab.crt=/etc/letsencrypt/live/gitlab.$DOMAIN/fullchain.pem \
   --from-file=gitlab.key=/etc/letsencrypt/live/gitlab.$DOMAIN/privkey.pem \
   --from-file=registry.crt=/etc/letsencrypt/live/registry.$DOMAIN/fullchain.pem \

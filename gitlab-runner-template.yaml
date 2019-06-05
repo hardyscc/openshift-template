@@ -1,11 +1,10 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 labels:
-  createdBy: "gitlab-runner-template"
+  createdBy: gitlab-runner-template
 metadata:
-  name: "gitlab-runner"
+  name: gitlab-runner
   annotations:
-    iconClass: "fa fa-git"
     description: |
       GitLab Runner Service.
       It uses GitLab Runner image from official repository at docker hub.
@@ -14,6 +13,7 @@ metadata:
       containers
         oc login -u system:admin
         oc adm policy add-scc-to-user privileged -z gitlab-runner-user -n CURRENT_PROJECT_NAME
+    iconClass: "fa fa-git"
     tags: "gitlab,CI"
 parameters:
   - description: "The name for the application. The service will be named like the application."

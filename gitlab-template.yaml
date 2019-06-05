@@ -3,6 +3,7 @@ kind: Template
 labels:
   createdBy: gitlab-ce-template
 metadata:
+  name: gitlab-ce
   annotations:
     description:
       "GitLab. Collaboration and source control management: code, test,
@@ -11,8 +12,6 @@ metadata:
       is: <application name>-user"
     iconClass: icon-gitlab
     tags: instant-app,gitlab,VCS,ci-cd
-  name: gitlab-ce
-  namespace: gitlab
 parameters:
   - description: The name for the application. The service will be named like the application.
     displayName: Application name.

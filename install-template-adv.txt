@@ -75,8 +75,8 @@ certbot certonly --manual --preferred-challenges dns -d gitlab.$DOMAIN
 certbot certonly --manual --preferred-challenges dns -d registry.$DOMAIN
 
 -----------------------------------------------------------------------------------------------------------------
-# install gitlab
-oc new-project gitlab
+# install gitlab-ce
+oc new-project gitlab-ce
 oc create -f https://raw.githubusercontent.com/hardyscc/openshift-template/master/gitlab-template.yaml
 oc adm policy add-scc-to-user anyuid -z gitlab-ce-user
 oc create secret generic gitlab-cert \
