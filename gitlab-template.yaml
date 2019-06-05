@@ -13,6 +13,68 @@ metadata:
     tags: instant-app,gitlab,VCS,ci-cd
   name: gitlab-ce
   namespace: gitlab
+parameters:
+  - description: The name for the application. The service will be named like the application.
+    displayName: Application name.
+    name: APPLICATION_NAME
+    value: gitlab-ce
+  - description:
+      Domain name for service routes. Set this in order to have the GitLab display
+      the correct clone urls.
+    displayName: Gitlab instance domain name
+    name: APPLICATION_DOMAIN
+    required: true
+  - description:
+      Password for the GitLab 'root' user. Must be at least 8 characters
+      long. Leave blank if you would rather configure the password using the website
+      during first use.
+    displayName: GitLab Root User Password
+    name: GITLAB_ROOT_PASSWORD
+  - description: Username for PostgreSQL user that will be used for accessing the database.
+    displayName: PostgreSQL User
+    from: "user[A-Z0-9]{3}"
+    generate: expression
+    name: POSTGRESQL_USER
+    required: true
+  - description: Password for the PostgreSQL user.
+    displayName: PostgreSQL Password
+    from: "[a-zA-Z0-9]{16}"
+    generate: expression
+    name: POSTGRESQL_PASSWORD
+    required: true
+  - description: Password for the PostgreSQL Admin user.
+    displayName: PostgreSQL Admin User Password
+    from: "[a-zA-Z0-9]{16}"
+    generate: expression
+    name: POSTGRESQL_ADMIN_PASSWORD
+    required: true
+  - description: Name of the PostgreSQL database accessed.
+    displayName: PostgreSQL Database Name
+    name: POSTGRESQL_DATABASE
+    required: true
+    value: gitlabhq_production
+  - description: Number of Unicorn Workers to use per instance. Must be at least 2.
+    displayName: Number of Unicorn Workers
+    name: UNICORN_WORKERS
+    required: true
+    value: "2"
+  - description: Volume size for /etc
+    displayName: /etc/gitlab volume size
+    name: ETC_VOL_SIZE
+    value: 100Mi
+  - description: Volume size for GitLab data
+    displayName: GitLab data volume size
+    name: GITLAB_DATA_VOL_SIZE
+    value: 50Gi
+  - description: Volume size for postgresql data
+    displayName: postgresql volume size
+    name: POSTGRESQL_VOL_SIZE
+    value: 2Gi
+  - description: Volume size for redis data
+    displayName: redis volume size
+    name: REDIS_VOL_SIZE
+    value: 512Mi
+
 objects:
   - apiVersion: v1
     kind: ImageStream
@@ -443,65 +505,3 @@ objects:
       to:
         kind: Service
         name: ${APPLICATION_NAME}
-
-parameters:
-  - description: The name for the application. The service will be named like the application.
-    displayName: Application name.
-    name: APPLICATION_NAME
-    value: gitlab-ce
-  - description:
-      Domain name for service routes. Set this in order to have the GitLab display
-      the correct clone urls.
-    displayName: Gitlab instance domain name
-    name: APPLICATION_DOMAIN
-    required: true
-  - description:
-      Password for the GitLab 'root' user. Must be at least 8 characters
-      long. Leave blank if you would rather configure the password using the website
-      during first use.
-    displayName: GitLab Root User Password
-    name: GITLAB_ROOT_PASSWORD
-  - description: Username for PostgreSQL user that will be used for accessing the database.
-    displayName: PostgreSQL User
-    from: "user[A-Z0-9]{3}"
-    generate: expression
-    name: POSTGRESQL_USER
-    required: true
-  - description: Password for the PostgreSQL user.
-    displayName: PostgreSQL Password
-    from: "[a-zA-Z0-9]{16}"
-    generate: expression
-    name: POSTGRESQL_PASSWORD
-    required: true
-  - description: Password for the PostgreSQL Admin user.
-    displayName: PostgreSQL Admin User Password
-    from: "[a-zA-Z0-9]{16}"
-    generate: expression
-    name: POSTGRESQL_ADMIN_PASSWORD
-    required: true
-  - description: Name of the PostgreSQL database accessed.
-    displayName: PostgreSQL Database Name
-    name: POSTGRESQL_DATABASE
-    required: true
-    value: gitlabhq_production
-  - description: Number of Unicorn Workers to use per instance. Must be at least 2.
-    displayName: Number of Unicorn Workers
-    name: UNICORN_WORKERS
-    required: true
-    value: "2"
-  - description: Volume size for /etc
-    displayName: /etc/gitlab volume size
-    name: ETC_VOL_SIZE
-    value: 100Mi
-  - description: Volume size for GitLab data
-    displayName: GitLab data volume size
-    name: GITLAB_DATA_VOL_SIZE
-    value: 50Gi
-  - description: Volume size for postgresql data
-    displayName: postgresql volume size
-    name: POSTGRESQL_VOL_SIZE
-    value: 2Gi
-  - description: Volume size for redis data
-    displayName: redis volume size
-    name: REDIS_VOL_SIZE
-    value: 512Mi

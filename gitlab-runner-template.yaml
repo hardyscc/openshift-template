@@ -1,5 +1,7 @@
+apiVersion: template.openshift.io/v1
 kind: Template
-apiVersion: v1
+labels:
+  createdBy: "gitlab-runner-template"
 metadata:
   name: "gitlab-runner"
   annotations:
@@ -13,8 +15,6 @@ metadata:
         oc login -u system:admin
         oc adm policy add-scc-to-user privileged -z gitlab-runner-user -n CURRENT_PROJECT_NAME
     tags: "gitlab,CI"
-labels:
-  createdBy: "gitlab-runner-template"
 parameters:
   - description: "The name for the application. The service will be named like the application."
     displayName: "Application name."
