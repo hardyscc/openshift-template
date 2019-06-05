@@ -69,10 +69,10 @@ objects:
         app: ${APPLICATION_NAME}
     spec:
       tags:
-        - name: v11.11.0
+        - name: v11.11.1
           from:
             kind: DockerImage
-            name: gitlab/gitlab-runner:v11.11.0
+            name: gitlab/gitlab-runner:v11.11.1
 
   - kind: ConfigMap
     apiVersion: v1
@@ -85,6 +85,9 @@ objects:
         #!/bin/bash
         set -xe
         cp /scripts/config.toml /etc/gitlab-runner/
+        # import root ca cert
+        cp /scripts/ca.crt /usr/local/share/ca-certificates/
+        update-ca-certificates
         # Register the runner
         /entrypoint register --non-interactive \
           --url $GITLAB_URL \
@@ -118,6 +121,42 @@ objects:
       config.toml: |
         concurrent = 10
         check_interval = 10
+
+      ca.crt: |
+        -----BEGIN CERTIFICATE-----
+        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
+        ppo9JiL12R+xlm48
+        -----END CERTIFICATE-----
 
   - kind: ServiceAccount
     apiVersion: v1
@@ -156,7 +195,7 @@ objects:
               - gitlab-runner
             from:
               kind: ImageStreamTag
-              name: gitlab-runner:v11.11.0
+              name: gitlab-runner:v11.11.1
       replicas: 1
       test: false
       selector:
@@ -228,7 +267,7 @@ objects:
                 exec:
                   command: ["/usr/bin/pgrep", "gitlab-runner"]
                 initialDelaySeconds: 60
-              terminationMessagePath: "/dev/termination-log"
+              terminationMessagePath: /dev/termination-log
               imagePullPolicy: IfNotPresent
               securityContext:
                 privileged: true

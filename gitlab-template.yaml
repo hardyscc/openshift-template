@@ -22,10 +22,10 @@ objects:
       name: gitlab-ce
     spec:
       tags:
-        - name: 11.11.0
+        - name: 11.11.1
           from:
             kind: DockerImage
-            name: gitlab/gitlab-ce:11.11.0-ce.0
+            name: gitlab/gitlab-ce:11.11.1-ce.0
 
   - apiVersion: v1
     kind: ServiceAccount
@@ -139,7 +139,7 @@ objects:
               - gitlab-ce
             from:
               kind: ImageStreamTag
-              name: gitlab-ce:11.11.0
+              name: gitlab-ce:11.11.1
           type: ImageChange
 
   - apiVersion: v1
