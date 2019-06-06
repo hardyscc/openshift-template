@@ -154,20 +154,20 @@ objects:
                   path: /help
                   port: 443
                   scheme: HTTPS
-                initialDelaySeconds: 20
+                initialDelaySeconds: 60
               livenessProbe:
                 httpGet:
                   path: /help
                   port: 443
                   scheme: HTTPS
-                initialDelaySeconds: 180
+                initialDelaySeconds: 300
               resources:
-                limits:
-                  cpu: "1"
-                  memory: 4Gi
                 requests:
-                  cpu: 500m
-                  memory: 1Gi
+                  cpu: 1
+                  memory: 2Gi
+                limits:
+                  cpu: 2
+                  memory: 4Gi
               terminationMessagePath: /dev/termination-log
               volumeMounts:
                 - mountPath: /etc/gitlab
@@ -242,12 +242,12 @@ objects:
                   port: 6379
                 initialDelaySeconds: 120
               resources:
-                limits:
-                  cpu: "1"
-                  memory: 512Mi
                 requests:
                   cpu: 100m
-                  memory: 300Mi
+                  memory: 512Mi
+                limits:
+                  cpu: 1
+                  memory: 512Mi
               terminationMessagePath: /dev/termination-log
               volumeMounts:
                 - mountPath: /var/lib/redis/data
@@ -341,10 +341,10 @@ objects:
                 initialDelaySeconds: 120
               resources:
                 limits:
-                  cpu: "1"
+                  cpu: 1
                   memory: 512Mi
                 requests:
-                  cpu: "1"
+                  cpu: 1
                   memory: 512Mi
               terminationMessagePath: /dev/termination-log
               volumeMounts:
