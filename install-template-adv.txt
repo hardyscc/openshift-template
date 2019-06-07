@@ -128,6 +128,7 @@ oc rollout status deploymentconfig gitlab-runner
 2. Settings > CI/CD > Variables 
   AUTO_DEVOPS_CHART_REPOSITORY=https://raw.githubusercontent.com/hardyscc/openshift-charts/master
   CODE_QUALITY_DISABLED=true
+  POSTGRES_ENABLED=false
   GITLAB_FEATURES=license_management,sast,dependency_scanning,container_scanning,dast,review,stop_review
 
 -----------------------------------------------------------------------------------------------------------------

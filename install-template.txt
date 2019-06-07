@@ -144,6 +144,7 @@ oc rollout status deployment tiller
 2. Settings > CI/CD > Variables 
   AUTO_DEVOPS_CHART_REPOSITORY=https://raw.githubusercontent.com/hardyscc/openshift-charts/master
   CODE_QUALITY_DISABLED=true
+  POSTGRES_ENABLED=false  
   GITLAB_FEATURES=license_management,sast,dependency_scanning,container_scanning,dast,review,stop_review
 
 -----------------------------------------------------------------------------------------------------------------
@@ -151,18 +152,5 @@ oc rollout status deployment tiller
 
 1. replace 'docker:6060' to 'localhost:6060'
 2. add 'apk add -U wget ca-certificates' before 'wget -O gitlab-exporter/index.js ...'
-3. replace 'https://charts.gitlab.io' to 'https://raw.githubusercontent.com/hardyscc/openshift-charts/master' (gitlab version < 11.8)
 
 -----------------------------------------------------------------------------------------------------------------
-# Notes :
-
-# create a cluster-admin service account for helm deployment 
-oc project kube-system
-oc create serviceaccount admin-user
-oc create clusterrolebinding admin-user \
-  --clusterrole=cluster-admin \
-  --serviceaccount=kube-system:admin-user
-
-# get the token
-oc project kube-system
-oc describe secret $(oc describe serviceaccount admin-user | grep admin-user-token | head -n 1 | awk '{print ${DOLLAR}NF}')
