@@ -207,12 +207,12 @@ objects:
                 - name: NO_PROXY
                   value: ${NO_PROXY}
               resources:
-                limits:
-                  cpu: "600m"
-                  memory: "600Mi"
                 requests:
-                  cpu: "100m"
-                  memory: "300Mi"
+                  cpu: 100m
+                  memory: 500Mi
+                limits:
+                  cpu: 600m
+                  memory: 600Mi
               volumeMounts:
                 - name: scripts
                   mountPath: /scripts
