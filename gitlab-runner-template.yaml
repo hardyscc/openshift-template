@@ -134,18 +134,6 @@ objects:
       labels:
         app: ${APPLICATION_NAME}
 
-  - kind: RoleBinding
-    apiVersion: v1
-    metadata:
-      name: ${APPLICATION_NAME}-edit
-      labels:
-        app: ${APPLICATION_NAME}
-    subjects:
-      - kind: ServiceAccount
-        name: ${APPLICATION_NAME}-user
-    roleRef:
-      name: edit
-
   - kind: DeploymentConfig
     apiVersion: v1
     metadata:
@@ -255,10 +243,10 @@ objects:
         app: ${APPLICATION_NAME}
     spec:
       tags:
-        - name: latest
+        - name: 2019-06-04
           from:
             kind: DockerImage
-            name: minio/minio:latest
+            name: minio/minio:RELEASE.2019-06-04T01-15-58Z
 
   - apiVersion: v1
     kind: Service
@@ -313,7 +301,7 @@ objects:
               - minio
             from:
               kind: ImageStreamTag
-              name: minio:latest
+              name: minio:2019-06-04
       template:
         metadata:
           labels:
@@ -338,12 +326,12 @@ objects:
                   /bin/mkdir -p /storage/gitlab-runner-cache; 
                   /usr/bin/minio server /storage
               resources:
-                limits:
-                  cpu: 100m
-                  memory: 100Mi
                 requests:
                   cpu: 100m
-                  memory: 100Mi
+                  memory: 500Mi
+                limits:
+                  cpu: 100m
+                  memory: 500Mi
               volumeMounts:
                 - name: storage
                   mountPath: /storage
@@ -362,7 +350,6 @@ objects:
           restartPolicy: Always
           terminationGracePeriodSeconds: 30
           dnsPolicy: ClusterFirst
-          serviceAccount: ${APPLICATION_NAME}-user
           volumes:
             - name: storage
               persistentVolumeClaim:
