@@ -79,6 +79,11 @@ oc create useridentitymapping htpasswd_auth:$USER $USER
 oc adm policy add-scc-to-group anyuid system:authenticated
 
 -----------------------------------------------------------------------------------------------------------------
+# generate the cert for gitlab
+certbot certonly --manual --preferred-challenges dns -d gitlab.$DOMAIN
+certbot certonly --manual --preferred-challenges dns -d registry.$DOMAIN
+
+-----------------------------------------------------------------------------------------------------------------
 # install gitlab-ce
 oc new-project gitlab-ce
 oc create -f https://raw.githubusercontent.com/hardyscc/openshift-template/master/gitlab-template.yaml
