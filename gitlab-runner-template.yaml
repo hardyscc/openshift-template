@@ -85,9 +85,6 @@ objects:
         #!/bin/bash
         set -xe
         cp /scripts/config.toml /etc/gitlab-runner/
-        # import root ca cert
-        # cp /scripts/ca.crt /usr/local/share/ca-certificates/
-        # update-ca-certificates
         # Register the runner
         /entrypoint register --non-interactive \
           --url $GITLAB_URL \
@@ -122,17 +119,24 @@ objects:
         concurrent = 10
         check_interval = 10
 
-      # ca.crt: |
-      #   -----BEGIN CERTIFICATE-----
-      #   ...
-      #   -----END CERTIFICATE-----
-
   - kind: ServiceAccount
     apiVersion: v1
     metadata:
       name: ${APPLICATION_NAME}-user
       labels:
         app: ${APPLICATION_NAME}
+
+  - kind: RoleBinding
+    apiVersion: v1
+    metadata:
+      name: ${APPLICATION_NAME}-edit
+      labels:
+        app: ${APPLICATION_NAME}
+    subjects:
+      - kind: ServiceAccount
+        name: ${APPLICATION_NAME}-user
+    roleRef:
+      name: edit
 
   - kind: DeploymentConfig
     apiVersion: v1
