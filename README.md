@@ -12,15 +12,4 @@ export DOLLAR='$'
 envsubst < install-template.txt > install.txt
 ```
 
-2. Genetate an install-adv.txt
-
-```
-export DOMAIN=<your domain>
-export USER=<user name>
-export HTTP_PROXY=<http proxy (only if required)>
-export DOLLAR='$'
-
-envsubst < install-template-adv.txt > install-adv.txt
-```
-
-3. Follow the install.txt or install-adv.txt to install, enjoy ;)
+2. Follow the install.txt to install, enjoy ;)

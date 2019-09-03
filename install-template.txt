@@ -39,17 +39,6 @@ EOF
 systemctl restart dnsmasq
 
 -----------------------------------------------------------------------------------------------------------------
-# install certbot
-yum -y install epel-release 
-yum -y install certbot
-
-# generate certificates
-certbot certonly --manual --preferred-challenges dns -d console.$DOMAIN
-certbot certonly --manual --preferred-challenges dns -d registry.$DOMAIN
-certbot certonly --manual --preferred-challenges dns -d gitlab.$DOMAIN
-certbot certonly --manual --preferred-challenges dns -d *.apps.$DOMAIN
-
------------------------------------------------------------------------------------------------------------------
 # install git
 yum -y install git
 
@@ -58,25 +47,59 @@ git config --global --add http.proxy "$HTTP_PROXY"
 
 # install openshift
 # - during install, please keep the root user
-git clone https://github.com/hardyscc/installcentos.git
+git clone https://github.com/gshipley/installcentos
 cd installcentos
 export DOMAIN=$DOMAIN
 ./install-openshift.sh
 
 -----------------------------------------------------------------------------------------------------------------
-# uninstall if any failure occur then retry installation
-ansible-playbook -i inventory.ini openshift-ansible/playbooks/adhoc/uninstall.yml
+# install helm & local tiller
+
+curl -L https://git.io/get_helm.sh | bash
+
+cat << 'EOF' | sudo tee -a /usr/local/bin/start-tiller
+#!/bin/bash
+if [ $# -eq 0 ]; then
+    echo "Usage: start-tiller <TILLER_NAMESPACE>"
+    exit
+fi
+if [[ -z "$HELM_HOST" ]]; then
+    echo "Error: Please add 'export HELM_HOST=localhost:4413' into your ~/.profile first"
+    exit
+fi
+killall tiller > /dev/null 2>&1
+export TILLER_NAMESPACE=$1
+oc project $TILLER_NAMESPACE > /dev/null 2>&1 || oc new-project $TILLER_NAMESPACE
+tiller -listen $HELM_HOST > /dev/null 2>&1 &
+EOF
+sudo chmod a+x /usr/local/bin/start-tiller
 
 -----------------------------------------------------------------------------------------------------------------
-# create openshift user
-htpasswd /etc/origin/master/htpasswd $USER
-oc create user $USER
-oc create identity htpasswd_auth:$USER
-oc create useridentitymapping htpasswd_auth:$USER $USER
+# use helm & local tiller
+
+oc login https://console.$DOMAIN:8443/
+start-tiller <namespace>
+helm list
+
+-----------------------------------------------------------------------------------------------------------------
+# uninstall if any failure occur then retry installation
+
+ansible-playbook -i inventory.ini openshift-ansible/playbooks/adhoc/uninstall.yml
+rm -rf /mnt/data/
 
 -----------------------------------------------------------------------------------------------------------------
 # enable anyuid access for whole cluster (required for heroku image)
+
 oc adm policy add-scc-to-group anyuid system:authenticated
+
+-----------------------------------------------------------------------------------------------------------------
+# create a cluster-admin service account for gitlab kubernetes Integration
+
+oc project kube-system
+oc create serviceaccount admin-user
+oc create clusterrolebinding admin-user \
+  --clusterrole=cluster-admin \
+  --serviceaccount=kube-system:admin-user
 
 -----------------------------------------------------------------------------------------------------------------
 # generate the cert for gitlab
@@ -85,6 +108,7 @@ certbot certonly --manual --preferred-challenges dns -d registry.$DOMAIN
 
 -----------------------------------------------------------------------------------------------------------------
 # install gitlab-ce
+
 oc new-project gitlab-ce
 oc create -f https://raw.githubusercontent.com/hardyscc/openshift-template/master/gitlab-template.yaml
 oc adm policy add-scc-to-user anyuid -z gitlab-ce-user
@@ -117,18 +141,6 @@ oc rollout status deploymentconfig gitlab-runner
 ## https://docs.gitlab.com/runner/executors/kubernetes.html#using-dockerdind
 
 -----------------------------------------------------------------------------------------------------------------
-# login as normal user
-oc login -u $USER https://console.$DOMAIN:8443
-
-# install tiller 
-export TILLER_NAMESPACE=$PROJECT
-oc new-project $PROJECT
-oc process -f https://github.com/openshift/origin/raw/master/examples/helm/tiller-template.yaml \
-  -p TILLER_NAMESPACE="$PROJECT" -p HELM_VERSION=v2.11.0 | oc apply -f -
-oc policy add-role-to-user admin -z tiller
-oc rollout status deployment tiller
-
------------------------------------------------------------------------------------------------------------------
 # Gitlab administration config: (login as root)
 
 1. Overview > Users - Add User $USER
@@ -137,19 +149,19 @@ oc rollout status deployment tiller
 -----------------------------------------------------------------------------------------------------------------
 # Gitlab project config: (login as $USER)
 ## look up KUBE_TOKEN using
-## > oc project $PROJECT
-## > oc describe secret $(oc describe serviceaccount tiller | grep tiller-token | head -n 1 | awk '{print ${DOLLAR}NF}')
+## > oc project kube-system
+## > oc describe secret $(oc describe serviceaccount admin-user | grep admin-user-token | head -n 1 | awk '{print ${DOLLAR}NF}')
 
 1. Operations > Kubernetes > Add Existing cluster
    - Kubernetes cluster name: openshift
    - API URL: https://console.$DOMAIN:8443/
    - Token: $KUBE_TOKEN
-   - Project namespace: $PROJECT
+   - Project namespace: Empty
    - RBAC-enabled cluster: true
 2. Settings > CI/CD > Variables 
   AUTO_DEVOPS_CHART_REPOSITORY=https://raw.githubusercontent.com/hardyscc/openshift-charts/master
   CODE_QUALITY_DISABLED=true
-  POSTGRES_ENABLED=false  
+  POSTGRES_ENABLED=false
   GITLAB_FEATURES=license_management,sast,dependency_scanning,container_scanning,dast,review,stop_review
 
 -----------------------------------------------------------------------------------------------------------------
@@ -159,3 +171,4 @@ oc rollout status deployment tiller
 2. add 'apk add -U wget ca-certificates' before 'wget -O gitlab-exporter/index.js ...'
 
 -----------------------------------------------------------------------------------------------------------------
+

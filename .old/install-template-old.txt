@@ -39,6 +39,17 @@ EOF
 systemctl restart dnsmasq
 
 -----------------------------------------------------------------------------------------------------------------
+# install certbot
+yum -y install epel-release 
+yum -y install certbot
+
+# generate certificates
+certbot certonly --manual --preferred-challenges dns -d console.$DOMAIN
+certbot certonly --manual --preferred-challenges dns -d registry.$DOMAIN
+certbot certonly --manual --preferred-challenges dns -d gitlab.$DOMAIN
+certbot certonly --manual --preferred-challenges dns -d *.apps.$DOMAIN
+
+-----------------------------------------------------------------------------------------------------------------
 # install git
 yum -y install git
 
@@ -47,7 +58,7 @@ git config --global --add http.proxy "$HTTP_PROXY"
 
 # install openshift
 # - during install, please keep the root user
-git clone https://github.com/gshipley/installcentos
+git clone https://github.com/hardyscc/installcentos.git
 cd installcentos
 export DOMAIN=$DOMAIN
 ./install-openshift.sh
@@ -55,19 +66,17 @@ export DOMAIN=$DOMAIN
 -----------------------------------------------------------------------------------------------------------------
 # uninstall if any failure occur then retry installation
 ansible-playbook -i inventory.ini openshift-ansible/playbooks/adhoc/uninstall.yml
-rm -rf /mnt/data/
+
+-----------------------------------------------------------------------------------------------------------------
+# create openshift user
+htpasswd /etc/origin/master/htpasswd $USER
+oc create user $USER
+oc create identity htpasswd_auth:$USER
+oc create useridentitymapping htpasswd_auth:$USER $USER
 
 -----------------------------------------------------------------------------------------------------------------
 # enable anyuid access for whole cluster (required for heroku image)
 oc adm policy add-scc-to-group anyuid system:authenticated
-
------------------------------------------------------------------------------------------------------------------
-# create a cluster-admin service account for helm deployment 
-oc project kube-system
-oc create serviceaccount admin-user
-oc create clusterrolebinding admin-user \
-  --clusterrole=cluster-admin \
-  --serviceaccount=kube-system:admin-user
 
 -----------------------------------------------------------------------------------------------------------------
 # generate the cert for gitlab
@@ -108,6 +117,18 @@ oc rollout status deploymentconfig gitlab-runner
 ## https://docs.gitlab.com/runner/executors/kubernetes.html#using-dockerdind
 
 -----------------------------------------------------------------------------------------------------------------
+# login as normal user
+oc login -u $USER https://console.$DOMAIN:8443
+
+# install tiller 
+export TILLER_NAMESPACE=$PROJECT
+oc new-project $PROJECT
+oc process -f https://github.com/openshift/origin/raw/master/examples/helm/tiller-template.yaml \
+  -p TILLER_NAMESPACE="$PROJECT" -p HELM_VERSION=v2.11.0 | oc apply -f -
+oc policy add-role-to-user admin -z tiller
+oc rollout status deployment tiller
+
+-----------------------------------------------------------------------------------------------------------------
 # Gitlab administration config: (login as root)
 
 1. Overview > Users - Add User $USER
@@ -116,19 +137,19 @@ oc rollout status deploymentconfig gitlab-runner
 -----------------------------------------------------------------------------------------------------------------
 # Gitlab project config: (login as $USER)
 ## look up KUBE_TOKEN using
-## > oc project kube-system
-## > oc describe secret $(oc describe serviceaccount admin-user | grep admin-user-token | head -n 1 | awk '{print ${DOLLAR}NF}')
+## > oc project $PROJECT
+## > oc describe secret $(oc describe serviceaccount tiller | grep tiller-token | head -n 1 | awk '{print ${DOLLAR}NF}')
 
 1. Operations > Kubernetes > Add Existing cluster
    - Kubernetes cluster name: openshift
    - API URL: https://console.$DOMAIN:8443/
    - Token: $KUBE_TOKEN
-   - Project namespace: Empty
+   - Project namespace: $PROJECT
    - RBAC-enabled cluster: true
 2. Settings > CI/CD > Variables 
   AUTO_DEVOPS_CHART_REPOSITORY=https://raw.githubusercontent.com/hardyscc/openshift-charts/master
   CODE_QUALITY_DISABLED=true
-  POSTGRES_ENABLED=false
+  POSTGRES_ENABLED=false  
   GITLAB_FEATURES=license_management,sast,dependency_scanning,container_scanning,dast,review,stop_review
 
 -----------------------------------------------------------------------------------------------------------------
@@ -136,5 +157,5 @@ oc rollout status deploymentconfig gitlab-runner
 
 1. replace 'docker:6060' to 'localhost:6060'
 2. add 'apk add -U wget ca-certificates' before 'wget -O gitlab-exporter/index.js ...'
------------------------------------------------------------------------------------------------------------------
 
+-----------------------------------------------------------------------------------------------------------------
