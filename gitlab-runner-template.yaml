@@ -96,6 +96,10 @@ objects:
           --registration-token $REGISTRATION_TOKEN \
           --name "k8s_runner" \
           --executor kubernetes \
+          --kubernetes-service-cpu-limit "2" \
+          --kubernetes-service-memory-limit "8Gi" \
+          --kubernetes-service-cpu-request "200m" \
+          --kubernetes-service-memory-request "500Mi" \
           --env HTTP_PROXY="$HTTP_PROXY" \
           --env http_proxy="$HTTP_PROXY" \
           --env HTTPS_PROXY="$HTTPS_PROXY" \
