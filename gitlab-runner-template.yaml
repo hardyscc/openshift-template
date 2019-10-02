@@ -43,6 +43,10 @@ parameters:
     name: MINIO_SECRET_KEY
     from: "[a-zA-Z0-9]{40}"
     generate: expression
+  - description: Volume size for minio data
+    displayName: Minio volume size
+    name: MINIO_VOL_SIZE
+    value: 5Gi
   - description: "Http Proxy"
     displayName: "Http Proxy"
     name: HTTP_PROXY
@@ -293,7 +297,7 @@ objects:
         - ReadWriteOnce
       resources:
         requests:
-          storage: 5Gi
+          storage: ${MINIO_VOL_SIZE}
 
   - apiVersion: v1
     kind: DeploymentConfig
