@@ -69,7 +69,11 @@ if [[ -z "$HELM_HOST" ]]; then
 fi
 killall tiller > /dev/null 2>&1
 export TILLER_NAMESPACE=$1
-oc project $TILLER_NAMESPACE > /dev/null 2>&1 || oc new-project $TILLER_NAMESPACE
+oc project $TILLER_NAMESPACE > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "No such namespace!"
+    exit
+fi
 tiller -listen $HELM_HOST > /dev/null 2>&1 &
 EOF
 sudo chmod a+x /usr/local/bin/start-tiller
