@@ -6,16 +6,16 @@ and port forward 8443,443,80,22 to this server.
 
 -----------------------------------------------------------------------------------------------------------------
 # install centos 7 minimum
-1. set timezone & date time 
+1. set timezone & date time
 2. enable network & set hostname (i.e. okd.$DOMAIN)
 3. create user account & make it as administrator
 
 -----------------------------------------------------------------------------------------------------------------
 # copy ssh public key over to server
-ssh-copy-id -i ~/.ssh/id_rsa.pub $USER@okd.$DOMAIN
+ssh-copy-id -i ~/.ssh/id_rsa.pub $USER@okd
 
 # ssh to server and become root
-ssh $USER@okd.$DOMAIN
+ssh $USER@okd
 sudo -i
 
 # add sudoers
