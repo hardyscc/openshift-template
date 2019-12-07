@@ -31,7 +31,8 @@ EOF
 # update system
 yum -y update
 
-# this may need if u don't have your own domain during install
+# if you have your own domain, please open port 8443,443,80 and point *.$DOMAIN *.apps.$DOMAIN to this machine.
+# the following only needed when u don't have your own domain during install
 yum -y install dnsmasq 
 cat << EOF >> /etc/dnsmasq.conf
 address=/$DOMAIN/$(ip -4 addr show eno1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
