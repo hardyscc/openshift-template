@@ -27,6 +27,12 @@ LANGUAGE="en_US.UTF-8"
 LC_ALL="en_US.UTF-8"
 EOF
 
+# append /usr/local/bin to PATH
+cat << 'EOF' >> /etc/profile.d/sh.local
+export PATH=$PATH:/usr/local/bin
+EOF
+source /etc/profile
+
 # set proxy under /etc/environment (only if required)
 cat << EOF >> /etc/environment
 http_proxy="$HTTP_PROXY"
@@ -63,7 +69,7 @@ export DOMAIN=$DOMAIN
 
 curl -L https://git.io/get_helm.sh | bash
 
-cat << 'EOF' | sudo tee -a /usr/bin/start-tiller
+cat << 'EOF' >> /usr/local/bin/start-tiller
 #!/bin/bash
 if [ $# -eq 0 ]; then
     echo "Usage: start-tiller <TILLER_NAMESPACE>"
@@ -82,7 +88,7 @@ if [ $? -ne 0 ]; then
 fi
 tiller -listen $HELM_HOST > /dev/null 2>&1 &
 EOF
-sudo chmod a+x /usr/bin/start-tiller
+sudo chmod a+x /usr/local/bin/start-tiller
 
 -----------------------------------------------------------------------------------------------------------------
 # use helm & local tiller
