@@ -47,7 +47,7 @@ git config --global --add http.proxy "$HTTP_PROXY"
 
 # install openshift
 # - during install, please keep the root user
-git clone https://github.com/gshipley/installcentos
+git clone https://github.com/okd-community-install/installcentos
 cd installcentos
 export DOMAIN=$DOMAIN
 ./install-openshift.sh
