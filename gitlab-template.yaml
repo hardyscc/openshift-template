@@ -154,13 +154,13 @@ objects:
                   path: /help
                   port: 443
                   scheme: HTTPS
-                initialDelaySeconds: 60
+                initialDelaySeconds: 120
               livenessProbe:
                 httpGet:
                   path: /help
                   port: 443
                   scheme: HTTPS
-                initialDelaySeconds: 300
+                initialDelaySeconds: 600
               resources:
                 requests:
                   cpu: 1
