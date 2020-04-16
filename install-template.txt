@@ -29,7 +29,7 @@ EOF
 
 # append /usr/local/bin to PATH
 cat << 'EOF' >> /etc/profile.d/sh.local
-export PATH=$PATH:/usr/local/bin
+export PATH=${DOLLAR}PATH:/usr/local/bin
 EOF
 source /etc/profile
 
