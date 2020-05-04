@@ -23,6 +23,14 @@ parameters:
     displayName: Gitlab instance domain name
     name: APPLICATION_DOMAIN
     required: true
+  - description: Gitlab route name.
+    displayName: Gitlab route name.
+    name: ROUTE_GITLAB_NAME
+    value: gitlab
+  - description: Gitlab Registry route name.
+    displayName: Gitlab Registry route name.
+    name: ROUTE_REGISTRY_NAME
+    value: registry
   - description:
       Password for the GitLab 'root' user. Must be at least 8 characters
       long. Leave blank if you would rather configure the password using the website
@@ -120,7 +128,7 @@ objects:
                 - name: GITLAB_OMNIBUS_CONFIG
                   value: >-
                     domain='${APPLICATION_DOMAIN}';
-                    external_url "https://gitlab.#{domain}/" unless domain.to_s == '';
+                    external_url "https://${ROUTE_GITLAB_NAME}.#{domain}/" unless domain.to_s == '';
                     nginx['ssl_certificate'] = '/gitlab-cert/gitlab.crt';
                     nginx['ssl_certificate_key'] = '/gitlab-cert/gitlab.key';                    
                     root_pass='${GITLAB_ROOT_PASSWORD}';
@@ -141,7 +149,7 @@ objects:
                     gitlab_rails['uploads_directory'] = '/gitlab-data/uploads';
                     gitlab_ci['builds_directory'] = '/gitlab-data/builds';
                     prometheus_monitoring['enable'] = false;
-                    registry_external_url "https://registry.#{domain}" unless domain.to_s == '';
+                    registry_external_url "https://${ROUTE_REGISTRY_NAME}.#{domain}" unless domain.to_s == '';
                     registry_nginx['ssl_certificate'] = '/gitlab-cert/registry.crt';
                     registry_nginx['ssl_certificate_key'] = '/gitlab-cert/registry.key';
               ports:
@@ -479,7 +487,7 @@ objects:
         app: ${APPLICATION_NAME}
       name: ${APPLICATION_NAME}
     spec:
-      host: gitlab.${APPLICATION_DOMAIN}
+      host: ${ROUTE_GITLAB_NAME}.${APPLICATION_DOMAIN}
       port:
         targetPort: 443-https
       tls:
@@ -496,7 +504,7 @@ objects:
         app: ${APPLICATION_NAME}
       name: ${APPLICATION_NAME}-registry
     spec:
-      host: registry.${APPLICATION_DOMAIN}
+      host: ${ROUTE_REGISTRY_NAME}.${APPLICATION_DOMAIN}
       port:
         targetPort: 443-https
       tls:
