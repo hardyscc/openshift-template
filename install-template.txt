@@ -11,6 +11,8 @@ and port forward 8443,443,80,22 to this server.
 3. create user account & make it as administrator
 
 -----------------------------------------------------------------------------------------------------------------
+# centos preparation
+
 # copy ssh public key over to server
 ssh-copy-id -i ~/.ssh/id_rsa.pub $USER@okd
 
@@ -51,51 +53,22 @@ EOF
 systemctl restart dnsmasq
 
 -----------------------------------------------------------------------------------------------------------------
+# install openshift
+# - during install, please keep using the root user
+
 # install git
 yum -y install git
 
 # set proxy (only if required)
 git config --global --add http.proxy "$HTTP_PROXY"
 
-# install openshift
-# - during install, please keep the root user
+# clone the okd ansible playbook scripts
 git clone https://github.com/okd-community-install/installcentos
 cd installcentos
+
+# start the installation
 export DOMAIN=$DOMAIN
 ./install-openshift.sh
-
------------------------------------------------------------------------------------------------------------------
-# install helm & local tiller
-
-curl -L https://git.io/get_helm.sh | bash
-
-cat << 'EOF' >> /usr/local/bin/start-tiller
-#!/bin/bash
-if [ $# -eq 0 ]; then
-    echo "Usage: start-tiller <TILLER_NAMESPACE>"
-    exit
-fi
-if [[ -z "$HELM_HOST" ]]; then
-    echo "Error: Please add 'export HELM_HOST=localhost:4413' into your ~/.profile first"
-    exit
-fi
-killall tiller > /dev/null 2>&1
-export TILLER_NAMESPACE=$1
-oc project $TILLER_NAMESPACE > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-    echo "No such namespace!"
-    exit
-fi
-tiller -listen $HELM_HOST > /dev/null 2>&1 &
-EOF
-sudo chmod a+x /usr/local/bin/start-tiller
-
------------------------------------------------------------------------------------------------------------------
-# use helm & local tiller
-
-oc login https://console.$DOMAIN:8443/
-start-tiller <namespace>
-helm list
 
 -----------------------------------------------------------------------------------------------------------------
 # uninstall if any failure occur then retry installation
@@ -119,6 +92,7 @@ oc create clusterrolebinding admin-user \
 
 -----------------------------------------------------------------------------------------------------------------
 # generate the cert for gitlab
+
 certbot certonly --manual --preferred-challenges dns -d gitlab.$DOMAIN
 certbot certonly --manual --preferred-challenges dns -d registry.$DOMAIN
 
@@ -179,12 +153,6 @@ oc rollout status deploymentconfig gitlab-runner
   CODE_QUALITY_DISABLED=true
   POSTGRES_ENABLED=false
   GITLAB_FEATURES=license_management,sast,dependency_scanning,container_scanning,dast,review,stop_review
-
------------------------------------------------------------------------------------------------------------------
-# patches required for .gitlab-ci.yml
-
-1. replace 'docker:6060' to 'localhost:6060'
-2. add 'apk add -U wget ca-certificates' before 'wget -O gitlab-exporter/index.js ...'
 
 -----------------------------------------------------------------------------------------------------------------
 
