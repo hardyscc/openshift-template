@@ -97,18 +97,18 @@ certbot certonly --manual --preferred-challenges dns -d gitlab.$DOMAIN
 certbot certonly --manual --preferred-challenges dns -d registry.$DOMAIN
 
 -----------------------------------------------------------------------------------------------------------------
-# install gitlab-ce
+# install gitlab
 
-oc new-project gitlab-ce
+oc new-project gitlab
 oc create -f https://raw.githubusercontent.com/hardyscc/openshift-template/master/gitlab-template.yaml
-oc adm policy add-scc-to-user anyuid -z gitlab-ce-user
+oc adm policy add-scc-to-user anyuid -z gitlab-user
 oc create secret generic gitlab-cert \
   --from-file=gitlab.crt=/etc/letsencrypt/live/gitlab.$DOMAIN/fullchain.pem \
   --from-file=gitlab.key=/etc/letsencrypt/live/gitlab.$DOMAIN/privkey.pem \
   --from-file=registry.crt=/etc/letsencrypt/live/registry.$DOMAIN/fullchain.pem \
   --from-file=registry.key=/etc/letsencrypt/live/registry.$DOMAIN/privkey.pem
-oc new-app gitlab-ce -p APPLICATION_DOMAIN=$DOMAIN
-oc rollout status deploymentconfig gitlab-ce
+oc new-app gitlab -p APPLICATION_DOMAIN=$DOMAIN
+oc rollout status deploymentconfig gitlab
 
 -----------------------------------------------------------------------------------------------------------------
 # install gitlab runner
